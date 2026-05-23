@@ -1,0 +1,23 @@
+name: reseau_auto
+description: "Application Reseau Pieces Afrique"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '^3.2.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.0.2
+  geolocator: ^14.0.2
+  image_picker: ^1.2.2
+  audioplayers: ^6.6.0
+  record: ^6.2.0
+  path_provider: ^2.1.5
+  just_audio: ^0.10.5
+
+flutter:
+  uses-material-design: true
+dev_dependencies:
+  flutter_lints: ^6.0.0
