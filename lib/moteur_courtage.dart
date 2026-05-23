@@ -36,9 +36,12 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   // 🧮 Moteur Algorithmique : Recherche + Calcul de distance
   Future<void> _rechercherEtCalculerCorrespondances() async {
     try {
-      // 1. On récupère les magasins de la même marque ou même type de pièce
-      final donnees = await _supabase.from('Magasins').select().or(
-          'specialite_marque.ilike.%${widget.marqueRecherche}%,specialite_type.ilike.%${widget.typeRecherche}%');
+      // 🎯 LE FILTRE DU "ET" STRICT : Marque ET Type de pièce obligatoires
+      final donnees = await _supabase
+          .from('Magasins')
+          .select()
+          .ilike('specialite_marque', '%${widget.marqueRecherche}%')
+          .ilike('specialite_type', '%${widget.typeRecherche}%');
 
       List<Map<String, dynamic>> listeFiltree = [];
 

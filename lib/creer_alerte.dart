@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'moteur_courtage.dart';
 
 class EcranCreerAlerte extends StatefulWidget {
   final String idGerant;
@@ -116,18 +117,25 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
 
       if (mounted) {
         setState(() => _isSending = false);
-        final bool isEnglish =
-            Localizations.localeOf(context).languageCode == 'en';
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(
-                isEnglish ? "📡 ALERT BROADCASTED!" : "📡 ALERTE ENVOYÉE !"),
-            content: Text(isEnglish
-                ? "The semantic alert is live on the network."
-                : "L'alerte sémantique est sur le réseau."),
+
+        // 🧠 SIMULATION SÉMANTIQUE : On génère un scénario selon le choix du gérant
+        String marqueSimulee = "Toyota";
+        String pieceSimulee =
+            _typeFluxSelected == 'presentiel' ? "Amortisseur" : "Cardan";
+
+        // 🚀 NAVIGATION AUTOMATIQUE : On propulse le gérant directement sur le moteur de courtage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MoteurCourtageScreen(
+              marqueRecherche: marqueSimulee,
+              typeRecherche: pieceSimulee,
+              latG1: 4.0510, // Position de test de G1 à Douala
+              lngG1: 9.7679,
+            ),
           ),
         );
+
         setState(() {
           _audioBytes = null;
         });
