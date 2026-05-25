@@ -3,6 +3,7 @@ import 'creer_alerte.dart';
 import 'hub_alertes.dart';
 import 'moteur_courtage.dart';
 import 'alerte_flash_vendeur.dart'; // 👈 On importe notre nouvel écran d'urgence flash
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String idUtilisateur;
