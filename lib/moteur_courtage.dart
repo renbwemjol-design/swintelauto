@@ -78,34 +78,38 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
   }
 
-  // 💬 Action Courtage : Redirection instantanée vers le WhatsApp du Vendeur
+  // 💬 Action Courtage : Redirection instantanée et native vers l'application WhatsApp
   Future<void> _appelerMagasin(String telephone, String nomMagasin) async {
-    // 1. Nettoyage strict du numéro (Ex: +2376XXXXXXXX)
+    // 1. Nettoyage strict du numéro (Ex: 2376XXXXXXXX)
     String numeroPropre = telephone.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
 
-    // Si le numéro ne commence pas par le code pays du Cameroun (237), on l'ajoute automatiquement
     if (!numeroPropre.startsWith('237')) {
       numeroPropre = '237$numeroPropre';
     }
 
-    // 2. Préparation du message sémantique pré-écrit en français/anglais
+    // 2. Préparation du message sémantique
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final String messageText = isEnglish
-        ? "Hello $nomMagasin, I am calling you via SWINTEL for a spare part deal!"
+        ? "Hello $nomMagasin, I am contacting you via SWINTEL for a spare part deal!"
         : "Bonjour $nomMagasin, je vous contacte via SWINTEL pour une affaire de pièce détachée !";
 
-    // 3. Configuration de l'URL d'autorité WhatsApp universelle (Fonctionne sur 100% des téléphones)
+    // 🎯 PROTOCOLE NATIF INTENSE : Ouvre directement l'application sans passer par le web (Évite le bug DNS)
     final String urlWhatsApp =
-        "https://wa.me{Uri.encodeComponent(messageText)}";
+        "whatsapp://send?phone=$numeroPropre&text=${Uri.encodeComponent(messageText)}";
     final Uri launchUri = Uri.parse(urlWhatsApp);
 
     try {
       if (await canLaunchUrl(launchUri)) {
-        await launchUrl(launchUri,
-            mode: LaunchMode
-                .externalApplication); // Force l'ouverture de l'application WhatsApp officielle
+        await launchUrl(launchUri);
       } else {
-        throw "WhatsApp not installed or link broken";
+        // Option de secours si le protocole natif échoue
+        final Uri backupUri =
+            Uri.parse("https://wa.me{Uri.encodeComponent(messageText)}");
+        if (await canLaunchUrl(backupUri)) {
+          await launchUrl(backupUri, mode: LaunchMode.externalApplication);
+        } else {
+          throw "WhatsApp is not installed";
+        }
       }
     } catch (e) {
       if (mounted) {
