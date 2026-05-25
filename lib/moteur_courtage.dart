@@ -78,17 +78,29 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
   }
 
-  // 📞 Action Courtier : Déclencher un appel téléphonique réel
+  // 📞 Action Courtage Direct : Appel Téléphonique Natif
   Future<void> _appelerMagasin(String telephone) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: telephone);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Impossible de lancer l'appel"),
-            backgroundColor: Colors.orange),
-      );
+    // 1. Nettoyage du numéro (on enlève les espaces ou caractères parasites)
+    final String numeroPropre = telephone.replaceAll(RegExp(r'\s+'), '');
+
+    // 2. Configuration du protocole d'autorité Android 'tel:'
+    final Uri launchUri = Uri(scheme: 'tel', path: numeroPropre);
+
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        throw "Protocole tel non supporté";
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text("🚨 Impossible de lancer l'appel vers $telephone : $e"),
+              backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
