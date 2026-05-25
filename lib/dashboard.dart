@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'creer_alerte.dart';
 import 'hub_alertes.dart';
-import 'moteur_courtage.dart'; // 👈 On importe le cerveau de courtage
+import 'moteur_courtage.dart';
+import 'alerte_flash_vendeur.dart'; // 👈 On importe notre nouvel écran d'urgence flash
 
 class DashboardScreen extends StatelessWidget {
   final String idUtilisateur;
@@ -23,7 +24,9 @@ class DashboardScreen extends StatelessWidget {
       ),
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 24.0,
+            vertical: 10.0), // Légère réduction pour faire tenir 4 boutons
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -32,22 +35,22 @@ class DashboardScreen extends StatelessWidget {
               color: Colors.amber,
               elevation: 4,
               child: Padding(
-                padding: EdgeInsets.all(15.0),
+                padding: EdgeInsets.all(12.0),
                 child: Column(
                   children: [
-                    Icon(Icons.directions_car, size: 40, color: Colors.black),
+                    Icon(Icons.directions_car, size: 35, color: Colors.black),
                     SizedBox(height: 5),
                     Text('RÉSEAU PIÈCES AFRIQUE',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
             Text(
               isEnglish
                   ? 'CHOOSE YOUR ACTION / CHOISISSEZ'
@@ -58,7 +61,7 @@ class DashboardScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: Colors.blueGrey),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
             // 📡 BOUTON 1 : ÉMISSION ALERTE
             Expanded(
@@ -77,22 +80,22 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.radar, size: 35),
+                    const Icon(Icons.radar, size: 30),
                     const SizedBox(height: 5),
                     Text(isEnglish ? 'SEND AN ALERT' : 'ÉMETTRE UNE ALERTE',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 15, fontWeight: FontWeight.bold)),
                     Text(
                         isEnglish
                             ? 'Record voice (WhatsApp style)'
                             : 'Enregistrer un vocal (Style WhatsApp)',
                         style: const TextStyle(
-                            fontSize: 11, color: Colors.white70)),
+                            fontSize: 10, color: Colors.white70)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
             // 📥 BOUTON 2 : HUB RECEPTION
             Expanded(
@@ -111,24 +114,24 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.forum_outlined, size: 35),
+                    const Icon(Icons.forum_outlined, size: 30),
                     const SizedBox(height: 5),
                     Text(isEnglish ? 'OPEN ALERT HUB' : 'OUVRIR LE FLUX DIRECT',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 15, fontWeight: FontWeight.bold)),
                     Text(
                         isEnglish
                             ? 'Check live requests'
                             : 'Consulter le flux en direct',
                         style: const TextStyle(
-                            fontSize: 11, color: Colors.white70)),
+                            fontSize: 10, color: Colors.white70)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
-            // 🧮 BOUTON 3 : SIMULATION DU MOTEUR DE COURTAGE (Nouveau !)
+            // 🧮 BOUTON 3 : SIMULATION DU MOTEUR DE COURTAGE
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
@@ -138,7 +141,7 @@ class DashboardScreen extends StatelessWidget {
                       builder: (context) => const MoteurCourtageScreen(
                         marqueRecherche: "Toyota",
                         typeRecherche: "Amortisseur",
-                        latG1: 4.0510, // Coordonnées de test de G1 (Douala)
+                        latG1: 4.0510,
                         lngG1: 9.7679,
                       ),
                     ),
@@ -153,20 +156,69 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.calculate, size: 35),
+                    const Icon(Icons.calculate, size: 30),
                     const SizedBox(height: 5),
                     Text(
                         isEnglish
                             ? 'SIMULATE BROKERAGE'
                             : 'SIMULER LE COURTAGE',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 15, fontWeight: FontWeight.bold)),
                     Text(
                         isEnglish
                             ? 'Test math match & distance'
                             : 'Tester le calcul et les distances',
                         style: const TextStyle(
-                            fontSize: 11, color: Colors.white70)),
+                            fontSize: 10, color: Colors.white70)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 🔥 BOUTON 4 : SIMULER LA RECEPTION D'UNE ALERTE FLASH (La nouvelle brique !)
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AlerteFlashVendeurScreen(
+                        idAlerte:
+                            "alerte-test-uuid-12345", // UUID fictif pour simulation
+                        idVendeur:
+                            "vendeur_test_fille", // ID de la fille de test
+                        nomMagasin:
+                            "Magasin Ornella/Alyona", // Nom du stock de test
+                        audioUrl:
+                            "https://supabase.co", // Lien audio de test valide ou vide
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.flash_on, size: 30),
+                    const SizedBox(height: 5),
+                    Text(
+                        isEnglish
+                            ? 'SIMULATE FLASH RECEPTION'
+                            : "SIMULER LA RÉCEPTION FLASH",
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                        isEnglish
+                            ? 'Test Yes/No buttons & reliability score'
+                            : 'Tester les boutons Oui/Non et les scores',
+                        style: const TextStyle(
+                            fontSize: 10, color: Colors.white70)),
                   ],
                 ),
               ),
