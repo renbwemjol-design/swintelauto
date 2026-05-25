@@ -78,26 +78,42 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
   }
 
-  // 📞 Action Courtage Direct : Appel Téléphonique Natif
-  Future<void> _appelerMagasin(String telephone) async {
-    // 1. Nettoyage du numéro (on enlève les espaces ou caractères parasites)
-    final String numeroPropre = telephone.replaceAll(RegExp(r'\s+'), '');
+  // 💬 Action Courtage : Redirection instantanée vers le WhatsApp du Vendeur
+  Future<void> _appelerMagasin(String telephone, String nomMagasin) async {
+    // 1. Nettoyage strict du numéro (Ex: +2376XXXXXXXX)
+    String numeroPropre = telephone.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
 
-    // 2. Configuration du protocole d'autorité Android 'tel:'
-    final Uri launchUri = Uri(scheme: 'tel', path: numeroPropre);
+    // Si le numéro ne commence pas par le code pays du Cameroun (237), on l'ajoute automatiquement
+    if (!numeroPropre.startsWith('237')) {
+      numeroPropre = '237$numeroPropre';
+    }
+
+    // 2. Préparation du message sémantique pré-écrit en français/anglais
+    final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final String messageText = isEnglish
+        ? "Hello $nomMagasin, I am calling you via SWINTEL for a spare part deal!"
+        : "Bonjour $nomMagasin, je vous contacte via SWINTEL pour une affaire de pièce détachée !";
+
+    // 3. Configuration de l'URL d'autorité WhatsApp universelle (Fonctionne sur 100% des téléphones)
+    final String urlWhatsApp =
+        "https://wa.me{Uri.encodeComponent(messageText)}";
+    final Uri launchUri = Uri.parse(urlWhatsApp);
 
     try {
       if (await canLaunchUrl(launchUri)) {
-        await launchUrl(launchUri);
+        await launchUrl(launchUri,
+            mode: LaunchMode
+                .externalApplication); // Force l'ouverture de l'application WhatsApp officielle
       } else {
-        throw "Protocole tel non supporté";
+        throw "WhatsApp not installed or link broken";
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text("🚨 Impossible de lancer l'appel vers $telephone : $e"),
+              content: Text(isEnglish
+                  ? "🚨 Cannot open WhatsApp: $e"
+                  : "🚨 Impossible d'ouvrir WhatsApp : $e"),
               backgroundColor: Colors.red),
         );
       }
@@ -211,16 +227,19 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                                 ),
 
                                 const Spacer(),
-                                // 📞 BOUTON APPEL COURTAGE
+                                // 📞 BOUTON APPEL COURTAGE (VERSION WHATSAPP)
                                 ElevatedButton.icon(
                                   onPressed: telephone.isEmpty
                                       ? null
-                                      : () => _appelerMagasin(telephone),
+                                      : () => _appelerMagasin(telephone,
+                                          nom), // 👈 Ajout du paramètre 'nom' ici !
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white),
-                                  icon: const Icon(Icons.phone),
-                                  label: Text(isEnglish ? 'Call' : 'Appeler'),
+                                  icon: const Icon(Icons
+                                      .chat), // On change l'icône pour le chat
+                                  label:
+                                      Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
                                 ),
                               ],
                             ),
