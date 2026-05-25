@@ -176,25 +176,51 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // 🔥 BOUTON 4 : SIMULER LA RECEPTION D'UNE ALERTE FLASH (La nouvelle brique !)
+            // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AlerteFlashVendeurScreen(
-                        idAlerte:
-                            "alerte-test-uuid-12345", // UUID fictif pour simulation
-                        idVendeur:
-                            "vendeur_test_fille", // ID de la fille de test
-                        nomMagasin:
-                            "Magasin Ornella/Alyona", // Nom du stock de test
-                        audioUrl:
-                            "https://supabase.co", // Lien audio de test valide ou vide
-                      ),
-                    ),
-                  );
+                onPressed: () async {
+                  // 🧠 On interroge Supabase pour attraper la toute dernière alerte vocale publiée sur le réseau
+                  try {
+                    final derniereAlerte = await Supabase.instance.client
+                        .from('Alertes')
+                        .select('id, audio_url')
+                        .order('created_at', ascending: false)
+                        .limit(1)
+                        .single();
+
+                    final dynamic idAlerteReel = derniereAlerte['id'];
+                    final String audioUrlReel =
+                        derniereAlerte['audio_url'] ?? '';
+
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AlerteFlashVendeurScreen(
+                            idAlerte: idAlerteReel,
+                            idVendeur: idUtilisateur == "yabassi_rj_test"
+                                ? "Ornella_Fille_1"
+                                : idUtilisateur,
+                            nomMagasin: idUtilisateur == "yabassi_rj_test"
+                                ? "Stock Ornella"
+                                : "Mon Magasin",
+                            audioUrl:
+                                audioUrlReel, // 👈 Le vrai son WhatsApp de G1 est branché ici !
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text("🚨 Aucune alerte trouvée en base : $e"),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
@@ -215,8 +241,8 @@ class DashboardScreen extends StatelessWidget {
                             fontSize: 15, fontWeight: FontWeight.bold)),
                     Text(
                         isEnglish
-                            ? 'Test Yes/No buttons & reliability score'
-                            : 'Tester les boutons Oui/Non et les scores',
+                            ? 'Test with real last voice request'
+                            : 'Tester avec le vrai dernier vocal',
                         style: const TextStyle(
                             fontSize: 10, color: Colors.white70)),
                   ],
