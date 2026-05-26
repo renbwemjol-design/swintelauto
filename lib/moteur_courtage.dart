@@ -56,7 +56,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     _ecouteReponseChannel?.subscribe();
   }
   // 🧮 Charge uniquement le magasin filtré qui a cliqué sur "J'ai la pièce"
-  Future<void> _chargerLeSpécialisteVolontaire() async {
+  Future<void> _chargerLeSpecialisteVolontaire() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     
