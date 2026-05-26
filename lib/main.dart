@@ -37,7 +37,7 @@ class ReseauPiecesApp extends StatelessWidget {
       ],
       title: 'Réseau Pièces Afrique',
       theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
-      home: const DashboardScreen(idUtilisateur: "yabassi_rj_test"),
+      home: const SwintelRadarGate(idUtilisateur: "yabassi_rj_test"), // 👈 Le radar automatique est branché ici !
     );
   }
 }

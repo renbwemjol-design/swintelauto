@@ -23,20 +23,45 @@ class MoteurCourtageScreen extends StatefulWidget {
 
 class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
+  RealtimeChannel? _ecouteReponseChannel; // 👈 Le tuyau temps réel pour intercepter le YES
 
-  List<Map<String, dynamic>> _magasinsCorrespondants = [];
+  List<Map<String, dynamic>> _magasinsQuiOntRepondu = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _rechercherEtCalculerCorrespondances();
+    _ecouterReponsesFlotteEnDirect();
+    // Au départ, on affiche une liste vide en attendant le clic physique du spécialiste
+    setState(() => _isLoading = false);
   }
 
-  // 🧮 Moteur Algorithmique : Recherche + Calcul de distance
-  Future<void> _rechercherEtCalculerCorrespondances() async {
+  // 📡 Étape 3 : Branchement Realtime pour capter le clic "YES" d'un spécialiste filtré
+  void _ecouterReponsesFlotteEnDirect() {
+    _ecouteReponseChannel = _supabase
+        .channel('public:Alertes:Match')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update, // Quand le spécialiste clique sur "YES"
+          schema: 'public',
+          table: 'Alertes',
+          callback: (payload) {
+            final String statut = payload.newRecord['statut_alerte'] ?? '';
+            
+            // Si le statut passe à 'en_cours_reponse', on déclenche instantanément l'affichage du spécialiste
+            if (statut == 'en_cours_reponse') {
+              _chargerLeSpécialisteVolontaire();
+            }
+          },
+        );
+    _ecouteReponseChannel?.subscribe();
+  }
+  // 🧮 Charge uniquement le magasin filtré qui a cliqué sur "J'ai la pièce"
+  Future<void> _chargerLeSpécialisteVolontaire() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    
     try {
-      // 🎯 LE FILTRE DU "ET" STRICT : Marque ET Type de pièce obligatoires
+      // 🎯 On va chercher le magasin qui correspond aux critères de l'alerte
       final donnees = await _supabase
           .from('Magasins')
           .select()
@@ -49,51 +74,47 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
         final double latTarget = (magasin['lat'] as num?)?.toDouble() ?? 0.0;
         final double lngTarget = (magasin['lng'] as num?)?.toDouble() ?? 0.0;
 
-        // 2. Calcul de la distance en mètres entre G1 et le magasin cible
+        // Calcul de la distance réelle au goudron
         double distanceEnMetres = Geolocator.distanceBetween(
             widget.latG1, widget.lngG1, latTarget, lngTarget);
 
-        double distanceEnKm = distanceEnMetres / 1000;
-
-        // On injecte la distance calculée dynamiquement dans l'objet magasin
-        magasin['distance_calculee'] = distanceEnKm;
+        magasin['distance_calculee'] = distanceEnMetres / 1000;
         listeFiltree.add(magasin);
       }
 
-      // 3. Tri des magasins : du plus proche au plus lointain
+      // Tri par proximité géographique
       listeFiltree.sort((a, b) => (a['distance_calculee'] as double)
           .compareTo(b['distance_calculee'] as double));
 
-      setState(() {
-        _magasinsCorrespondants = listeFiltree;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _magasinsQuiOntRepondu = listeFiltree;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text("Erreur moteur de recherche : $e"),
-            backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur filtrage direct : $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   // 💬 Action Courtage : Redirection instantanée et native vers l'application WhatsApp
   Future<void> _appelerMagasin(String telephone, String nomMagasin) async {
-    // 1. Nettoyage strict du numéro (Ex: 2376XXXXXXXX)
     String numeroPropre = telephone.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
 
     if (!numeroPropre.startsWith('237')) {
       numeroPropre = '237$numeroPropre';
     }
 
-    // 2. Préparation du message sémantique
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final String messageText = isEnglish
         ? "Hello $nomMagasin, I am contacting you via SWINTEL for a spare part deal!"
         : "Bonjour $nomMagasin, je vous contacte via SWINTEL pour une affaire de pièce détachée !";
 
-    // 🎯 PROTOCOLE NATIF INTENSE : Ouvre directement l'application sans passer par le web (Évite le bug DNS)
     final String urlWhatsApp =
         "whatsapp://send?phone=$numeroPropre&text=${Uri.encodeComponent(messageText)}";
     final Uri launchUri = Uri.parse(urlWhatsApp);
@@ -102,7 +123,6 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
-        // Option de secours si le protocole natif échoue
         final Uri backupUri =
             Uri.parse("https://wa.me{Uri.encodeComponent(messageText)}");
         if (await canLaunchUrl(backupUri)) {
@@ -124,7 +144,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
   }
 
-  // 🎁 L'INSERTION PURE DE 18H15 (Sans aucun paramètre de langue instable)
+  // 🎁 L'INSERTION PURE DE 18H15 (Avec le pop-up d'autorité "D'ACCORD")
   Future<void> _attribuerBonusFiche(String nomMagasin) async {
     try {
       await _supabase.from('BonusCourtage').insert({
@@ -157,6 +177,13 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   }
 
   @override
+  void dispose() {
+    if (_ecouteReponseChannel != null) {
+      _supabase.removeChannel(_ecouteReponseChannel!);
+    }
+    super.dispose();
+  }
+  @override
   Widget build(BuildContext context) {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
@@ -166,7 +193,6 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
             isEnglish ? 'SWINTEL - Match Broker' : 'SWINTEL - Courtage Match'),
         backgroundColor: Colors.amber,
         iconTheme: const IconThemeData(color: Colors.black),
-        // 🎯 FORCE LE DESSIN DE LA FLÈCHE ET L'ACTION DE RETOUR IMMÉDIATE
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
@@ -174,19 +200,26 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _magasinsCorrespondants.isEmpty
+          : _magasinsQuiOntRepondu.isEmpty
               ? Center(
-                  child: Text(isEnglish
-                      ? '❌ No matching stores found.'
-                      : '❌ Aucun magasin correspondant trouvé.'))
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      isEnglish
+                          ? '📡 Waiting for targeted specialists to answer "YES"...'
+                          : '📡 En attente de la réponse "J\'ai la pièce" des spécialistes ciblés...',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(10),
-                  itemCount: _magasinsCorrespondants.length,
+                  itemCount: _magasinsQuiOntRepondu.length,
                   itemBuilder: (context, index) {
-                    final magasin = _magasinsCorrespondants[index];
+                    final magasin = _magasinsQuiOntRepondu[index];
                     final String nom = magasin['nom'] ?? 'Anonyme';
-                    final String adresse =
-                        magasin['adresse'] ?? 'Pas d\'adresse';
+                    final String adresse = magasin['adresse'] ?? 'Pas d\'adresse';
                     final String telephone = magasin['telephone'] ?? '';
                     final double dist = magasin['distance_calculee'] ?? 0.0;
 
@@ -200,50 +233,34 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(nom,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(nom, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             const SizedBox(height: 5),
-                            Text('📍 $adresse',
-                                style: const TextStyle(color: Colors.grey)),
+                            Text('📍 $adresse', style: const TextStyle(color: Colors.grey)),
                             Text(
                               isEnglish
                                   ? '📏 Distance: ${dist.toStringAsFixed(2)} km'
                                   : '📏 Distance : ${dist.toStringAsFixed(2)} km',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
                             ),
                             const SizedBox(height: 15),
                             Row(
                               children: [
-                                // 🎁 BOUTON BONUS
                                 ElevatedButton.icon(
-                                  onPressed: () => _attribuerBonusFiche(
-                                      nom), // 👈 Version de 18h15 simple !
+                                  onPressed: () => _attribuerBonusFiche(nom),
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white),
                                   icon: const Icon(Icons.star),
-                                  label: Text(isEnglish
-                                      ? 'Send (Bonus)'
-                                      : 'Envoyer (Bonus)'),
+                                  label: Text(isEnglish ? 'Send (Bonus)' : 'Envoyer (Bonus)'),
                                 ),
-
                                 const Spacer(),
-                                // 📞 BOUTON APPEL COURTAGE (VERSION WHATSAPP)
                                 ElevatedButton.icon(
-                                  onPressed: telephone.isEmpty
-                                      ? null
-                                      : () => _appelerMagasin(telephone,
-                                          nom), // 👈 Ajout du paramètre 'nom' ici !
+                                  onPressed: telephone.isEmpty ? null : () => _appelerMagasin(telephone, nom),
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white),
-                                  icon: const Icon(Icons
-                                      .chat), // On change l'icône pour le chat
-                                  label:
-                                      Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
+                                  icon: const Icon(Icons.chat),
+                                  label: Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
                                 ),
                               ],
                             ),
