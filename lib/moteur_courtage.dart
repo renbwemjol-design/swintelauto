@@ -49,7 +49,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
             
             // Si le statut passe à 'en_cours_reponse', on déclenche instantanément l'affichage du spécialiste
             if (statut == 'en_cours_reponse') {
-              _chargerLeSpécialisteVolontaire();
+              _chargerLeSpecialisteVolontaire();
             }
           },
         );
