@@ -7,6 +7,8 @@ import 'ecran_admin.dart';
 import 'creer_alerte.dart';
 import 'hub_alertes.dart';
 import 'dashboard.dart';
+import 'swintel_radar.dart';
+
 
 // main copy 2, tourne jusqu'à l'enregisrement des coord GPS ok
 
