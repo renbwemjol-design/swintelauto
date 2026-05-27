@@ -37,37 +37,43 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     setState(() => _isLoading = false);
   }
 
-  // 📡 Étape 3 : Branchement Realtime pour capter le clic "YES" d'un spécialiste filtré
+  // 📡 Étape 3 : Branchement Realtime pour capter la signature dans le statut
   void _ecouterReponsesFlotteEnDirect() {
     _ecouteReponseChannel =
         _supabase.channel('public:Alertes:Match').onPostgresChanges(
-              event: PostgresChangeEvent
-                  .update, // Quand le spécialiste clique sur "YES"
+              event: PostgresChangeEvent.update,
               schema: 'public',
               table: 'Alertes',
               callback: (payload) {
-                final String statut = payload.newRecord['statut_alerte'] ?? '';
+                final String statutAlerte =
+                    payload.newRecord['statut_alerte'] ?? '';
 
-                // Si le statut passe à 'en_cours_reponse', on déclenche instantanément l'affichage du spécialiste
-                if (statut == 'en_cours_reponse') {
-                  _chargerLeSpecialisteVolontaire();
+                // 🧠 DÉCODEUR SÉMANTIQUE : Si le statut commence par 'reponse_', on extrait le nom
+                if (statutAlerte.startsWith('reponse_')) {
+                  final String magasinVolontaire =
+                      statutAlerte.replaceFirst('reponse_', '');
+                  if (magasinVolontaire.isNotEmpty) {
+                    _chargerLeSpecialisteVolontaire(
+                        magasinVolontaire); // 👈 On charge l'élu
+                  }
                 }
               },
             );
     _ecouteReponseChannel?.subscribe();
   }
 
-  // 🧮 Charge uniquement le magasin filtré qui a cliqué sur "J'ai la pièce" + Calcule sa fiabilité
-  Future<void> _chargerLeSpecialisteVolontaire() async {
+  // 🧮 Charge UNIQUEMENT le magasin exclusif qui a cliqué sur "YES"
+  Future<void> _chargerLeSpecialisteVolontaire(
+      String nomDuMagasinQuiARepondu) async {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
+      // 🎯 LA REQUÊTE SUR MESURE : Filtrage strict sur le nom extrait du statut
       final donnees = await _supabase
           .from('Magasins')
           .select()
-          .ilike('specialite_marque', '%${widget.marqueRecherche}%')
-          .ilike('specialite_type', '%${widget.typeRecherche}%');
+          .eq('nom', nomDuMagasinQuiARepondu); // 👈 EXCLUSIVITÉ TOTALE !
 
       List<Map<String, dynamic>> listeFiltree = [];
 
@@ -76,12 +82,12 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
         final double latTarget = (magasin['lat'] as num?)?.toDouble() ?? 0.0;
         final double lngTarget = (magasin['lng'] as num?)?.toDouble() ?? 0.0;
 
-        // 1. Calcul de la distance réelle au goudron
+        // Calcul de la distance au goudron
         double distanceEnMetres = Geolocator.distanceBetween(
             widget.latG1, widget.lngG1, latTarget, lngTarget);
         magasin['distance_calculee'] = distanceEnMetres / 1000;
 
-        // 🧠 2. CALCUL DU COEFFICIENT DE FIABILITÉ : Somme des points dans BonusCourtage
+        // Calcul de sa fiabilité historique
         final reponseBonus = await _supabase
             .from('BonusCourtage')
             .select('points_gagnes')
@@ -93,15 +99,10 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
             totalFiabilite += (ligne['points_gagnes'] as int? ?? 0);
           }
         }
-        magasin['score_fiabilite'] =
-            totalFiabilite; // On injecte le score calculé
+        magasin['score_fiabilite'] = totalFiabilite;
 
         listeFiltree.add(magasin);
       }
-
-      // Tri par proximité géographique (les plus proches en premier)
-      listeFiltree.sort((a, b) => (a['distance_calculee'] as double)
-          .compareTo(b['distance_calculee'] as double));
 
       if (mounted) {
         setState(() {

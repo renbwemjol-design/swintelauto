@@ -67,10 +67,10 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
         'points_gagnes': 10, // +10 points de fiabilité
       });
 
-      // Simulation de l'envoi de la fiche vers G1 (Mise à jour statut pour démo)
+      // 🧠 SIGNATURE SÉMANTIQUE : On fusionne le statut et le nom du magasin volontaire
       await _supabase.from('Alertes').update({
         'statut_alerte':
-            'en_cours_reponse', // Signale à G1 qu'un spécialiste est trouvé
+            'reponse_${widget.nomMagasin}', // 👈 Exemple: reponse_Stock Ornella Central
       }).eq('id', widget.idAlerte);
 
       if (mounted) {
