@@ -26,7 +26,8 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
     _supabase
         .channel('public:Alertes')
         .onPostgresChanges(
-          event: PostgresChangeEvent.insert, // Uniquement sur les NOUVELLES demandes
+          event: PostgresChangeEvent
+              .insert, // Uniquement sur les NOUVELLES demandes
           schema: 'public',
           table: 'Alertes',
           callback: (payload) async {
@@ -36,7 +37,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             final String demandeurId = alerte['demandeur_id'] ?? '';
 
             // Sécurité absolue : On ne s'envoie pas une alerte à soi-même
-            if (demandeurId == widget.idUtilisateur) return;
+            //if (demandeurId == widget.idUtilisateur) return; en commentaire pour tests avec keke et orny
 
             if (mounted) {
               // 📳 ACTION 1 : Déclenchement de la vibration physique (Pattern Saccadé d'urgence)
