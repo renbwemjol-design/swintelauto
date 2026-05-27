@@ -23,7 +23,8 @@ class MoteurCourtageScreen extends StatefulWidget {
 
 class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  RealtimeChannel? _ecouteReponseChannel; // 👈 Le tuyau temps réel pour intercepter le YES
+  RealtimeChannel?
+      _ecouteReponseChannel; // 👈 Le tuyau temps réel pour intercepter le YES
 
   List<Map<String, dynamic>> _magasinsQuiOntRepondu = [];
   bool _isLoading = true;
@@ -38,30 +39,30 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
 
   // 📡 Étape 3 : Branchement Realtime pour capter le clic "YES" d'un spécialiste filtré
   void _ecouterReponsesFlotteEnDirect() {
-    _ecouteReponseChannel = _supabase
-        .channel('public:Alertes:Match')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update, // Quand le spécialiste clique sur "YES"
-          schema: 'public',
-          table: 'Alertes',
-          callback: (payload) {
-            final String statut = payload.newRecord['statut_alerte'] ?? '';
-            
-            // Si le statut passe à 'en_cours_reponse', on déclenche instantanément l'affichage du spécialiste
-            if (statut == 'en_cours_reponse') {
-              _chargerLeSpecialisteVolontaire();
-            }
-          },
-        );
+    _ecouteReponseChannel =
+        _supabase.channel('public:Alertes:Match').onPostgresChanges(
+              event: PostgresChangeEvent
+                  .update, // Quand le spécialiste clique sur "YES"
+              schema: 'public',
+              table: 'Alertes',
+              callback: (payload) {
+                final String statut = payload.newRecord['statut_alerte'] ?? '';
+
+                // Si le statut passe à 'en_cours_reponse', on déclenche instantanément l'affichage du spécialiste
+                if (statut == 'en_cours_reponse') {
+                  _chargerLeSpecialisteVolontaire();
+                }
+              },
+            );
     _ecouteReponseChannel?.subscribe();
   }
-  // 🧮 Charge uniquement le magasin filtré qui a cliqué sur "J'ai la pièce"
+
+  // 🧮 Charge uniquement le magasin filtré qui a cliqué sur "J'ai la pièce" + Calcule sa fiabilité
   Future<void> _chargerLeSpecialisteVolontaire() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    
+
     try {
-      // 🎯 On va chercher le magasin qui correspond aux critères de l'alerte
       final donnees = await _supabase
           .from('Magasins')
           .select()
@@ -71,18 +72,34 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
       List<Map<String, dynamic>> listeFiltree = [];
 
       for (var magasin in donnees) {
+        final String nomMagasin = magasin['nom'] ?? '';
         final double latTarget = (magasin['lat'] as num?)?.toDouble() ?? 0.0;
         final double lngTarget = (magasin['lng'] as num?)?.toDouble() ?? 0.0;
 
-        // Calcul de la distance réelle au goudron
+        // 1. Calcul de la distance réelle au goudron
         double distanceEnMetres = Geolocator.distanceBetween(
             widget.latG1, widget.lngG1, latTarget, lngTarget);
-
         magasin['distance_calculee'] = distanceEnMetres / 1000;
+
+        // 🧠 2. CALCUL DU COEFFICIENT DE FIABILITÉ : Somme des points dans BonusCourtage
+        final reponseBonus = await _supabase
+            .from('BonusCourtage')
+            .select('points_gagnes')
+            .eq('magasin_cible_nom', nomMagasin);
+
+        int totalFiabilite = 0;
+        if (reponseBonus != null) {
+          for (var ligne in reponseBonus) {
+            totalFiabilite += (ligne['points_gagnes'] as int? ?? 0);
+          }
+        }
+        magasin['score_fiabilite'] =
+            totalFiabilite; // On injecte le score calculé
+
         listeFiltree.add(magasin);
       }
 
-      // Tri par proximité géographique
+      // Tri par proximité géographique (les plus proches en premier)
       listeFiltree.sort((a, b) => (a['distance_calculee'] as double)
           .compareTo(b['distance_calculee'] as double));
 
@@ -96,7 +113,9 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur filtrage direct : $e"), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text("Erreur filtrage direct : $e"),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -183,6 +202,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
@@ -209,7 +229,10 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                           ? '📡 Waiting for targeted specialists to answer "YES"...'
                           : '📡 En attente de la réponse "J\'ai la pièce" des spécialistes ciblés...',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 )
@@ -219,7 +242,8 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                   itemBuilder: (context, index) {
                     final magasin = _magasinsQuiOntRepondu[index];
                     final String nom = magasin['nom'] ?? 'Anonyme';
-                    final String adresse = magasin['adresse'] ?? 'Pas d\'adresse';
+                    final String adresse =
+                        magasin['adresse'] ?? 'Pas d\'adresse';
                     final String telephone = magasin['telephone'] ?? '';
                     final double dist = magasin['distance_calculee'] ?? 0.0;
 
@@ -233,15 +257,42 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(nom, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(nom,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
                             const SizedBox(height: 5),
-                            Text('📍 $adresse', style: const TextStyle(color: Colors.grey)),
+                            Text('📍 $adresse',
+                                style: const TextStyle(color: Colors.grey)),
                             Text(
                               isEnglish
                                   ? '📏 Distance: ${dist.toStringAsFixed(2)} km'
                                   : '📏 Distance : ${dist.toStringAsFixed(2)} km',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueGrey),
                             ),
+
+                            // 🌟 BADGE DE FIABILITÉ COMMERCIALE (Nouveau !)
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                const Icon(Icons.verified_user,
+                                    color: Colors.blue, size: 16),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isEnglish
+                                      ? '🛡️ Reliability Score: ${magasin['score_fiabilite'] ?? 0} pts'
+                                      : '🛡️ Score de Fiabilité : ${magasin['score_fiabilite'] ?? 0} pts',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          (magasin['score_fiabilite'] ?? 0) >= 0
+                                              ? Colors.green
+                                              : Colors.red),
+                                ),
+                              ],
+                            ),
+
                             const SizedBox(height: 15),
                             Row(
                               children: [
@@ -251,16 +302,21 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white),
                                   icon: const Icon(Icons.star),
-                                  label: Text(isEnglish ? 'Send (Bonus)' : 'Envoyer (Bonus)'),
+                                  label: Text(isEnglish
+                                      ? 'Send (Bonus)'
+                                      : 'Envoyer (Bonus)'),
                                 ),
                                 const Spacer(),
                                 ElevatedButton.icon(
-                                  onPressed: telephone.isEmpty ? null : () => _appelerMagasin(telephone, nom),
+                                  onPressed: telephone.isEmpty
+                                      ? null
+                                      : () => _appelerMagasin(telephone, nom),
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white),
                                   icon: const Icon(Icons.chat),
-                                  label: Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
+                                  label:
+                                      Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
                                 ),
                               ],
                             ),
