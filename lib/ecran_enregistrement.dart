@@ -13,8 +13,29 @@ class EcranEnregistrementScreen extends StatefulWidget {
 
 class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   final _telController = TextEditingController();
+  final FocusNode _vraiFocusNode =
+      FocusNode(); // 👈 ADDS THIS EXCLUSIVE LINE HERE !
   final SupabaseClient _supabase = Supabase.instance.client;
   bool _isVerifying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🧠 ANTIDOTE BUG SAMSUNG : On attend la fin du dessin de l'écran pour forcer le jaillissement du clavier !
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        FocusScope.of(context).requestFocus(_vraiFocusNode);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _telController.dispose();
+    _vraiFocusNode
+        .dispose(); // 👈 Libère proprement la mémoire vive du Samsung A10
+    super.dispose();
+  }
 
   // 🧠 LE COEUR INDUSTRIEL : Vérifie le numéro sur la table Magasins et l'ancre en RAM
   Future<void> _validerEtEnregistrerLeGerant() async {
