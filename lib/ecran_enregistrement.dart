@@ -124,9 +124,12 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
               // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE
               TextField(
+                autofocus: true, // 👈 AJOUTE CETTE LIGNE D'AUTORITÉ ICI !
                 controller: _telController,
                 keyboardType: TextInputType.phone,
-                textAlign: TextAlign.center,
+                textAlign: TextInputType.phone == TextInputType.phone
+                    ? TextAlign.center
+                    : TextAlign.start, // Conserve ton alignement centré
                 style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
