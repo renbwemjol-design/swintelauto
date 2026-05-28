@@ -38,7 +38,7 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     });
   }
 
-  // 🎵 1. Moteur d'écoute WhatsApp Style
+  // 🎵 1. Moteur d'écoute accéléré (Pré-chargement pour contrer les lenteurs réseau)
   Future<void> _gererLecture() async {
     if (widget.audioUrl.isEmpty) return;
     try {
@@ -47,12 +47,17 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
         setState(() => _isPlaying = false);
       } else {
         setState(() => _isPlaying = true);
-        await _audioPlayer.setUrl(widget.audioUrl);
+
+        // 🎯 ANTIDOTE LATENCE : On ordonne au lecteur de mettre en cache agressivement l'audio
+        if (_audioPlayer.duration == null) {
+          await _audioPlayer.setUrl(widget.audioUrl, preload: true);
+        }
+
         await _audioPlayer.play();
       }
     } catch (e) {
       setState(() => _isPlaying = false);
-      _afficherMessage("Audio error : $e", Colors.red);
+      _afficherMessage("Audio error (Network latency) : $e", Colors.red);
     }
   }
 

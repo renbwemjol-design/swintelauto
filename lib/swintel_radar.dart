@@ -37,7 +37,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             final String demandeurId = alerte['demandeur_id'] ?? '';
 
             // Sécurité absolue : On ne s'envoie pas une alerte à soi-même
-            //if (demandeurId == widget.idUtilisateur) return; en commentaire pour tests avec keke et orny
+            if (demandeurId == widget.idUtilisateur) return;
 
             if (mounted) {
               // 📳 ACTION 1 : Déclenchement de la vibration physique (Pattern Saccadé d'urgence)

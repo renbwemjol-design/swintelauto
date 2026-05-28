@@ -37,7 +37,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     setState(() => _isLoading = false);
   }
 
-  // 📡 Étape 3 : Branchement Realtime pour capter la signature dans le statut
+  // 📡 Étape 3 : Branchement Realtime tolérant aux accents (réponse_ ou reponse_)
   void _ecouterReponsesFlotteEnDirect() {
     _ecouteReponseChannel =
         _supabase.channel('public:Alertes:Match').onPostgresChanges(
@@ -48,13 +48,16 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
                 final String statutAlerte =
                     payload.newRecord['statut_alerte'] ?? '';
 
-                // 🧠 DÉCODEUR SÉMANTIQUE : Si le statut commence par 'reponse_', on extrait le nom
-                if (statutAlerte.startsWith('reponse_')) {
-                  final String magasinVolontaire =
-                      statutAlerte.replaceFirst('reponse_', '');
+                // 🧠 DÉCODEUR UNIFIÉ : Gère 'reponse_' ET 'réponse_' pour le goudron
+                if (statutAlerte.startsWith('reponse_') ||
+                    statutAlerte.startsWith('réponse_')) {
+                  // On nettoie le préfixe pour extraire le nom propre du magasin
+                  final String magasinVolontaire = statutAlerte
+                      .replaceFirst('reponse_', '')
+                      .replaceFirst('réponse_', '');
+
                   if (magasinVolontaire.isNotEmpty) {
-                    _chargerLeSpecialisteVolontaire(
-                        magasinVolontaire); // 👈 On charge l'élu
+                    _chargerLeSpecialisteVolontaire(magasinVolontaire);
                   }
                 }
               },
