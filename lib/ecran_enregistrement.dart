@@ -143,24 +143,22 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               ),
               const SizedBox(height: 15),
 
-              // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE
+              // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE (VERSION NETTOYÉE POUR LE A10)
               TextField(
                 focusNode: _vraiFocusNode,
                 autofocus: true,
                 controller: _telController,
                 keyboardType: TextInputType.phone,
-                textAlign: TextAlign.center,
+                textAlign: TextAlign.center, // 👈 Alignement direct et stable !
                 style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2),
                 decoration: InputDecoration(
-                  // ⌨️ ON AJOUTE UNE ICÔNE VISUELLE POUR INVITER AU CLIC
                   prefixIcon: const Icon(Icons.keyboard, color: Colors.orange),
                   hintText: '6XXXXXXXX',
                   hintStyle:
                       const TextStyle(color: Colors.grey, letterSpacing: 1),
-                  // 🧠 PHRASE D'AIDE SÉMANTIQUE EN BAS DU CHAMP
                   helperText: isEnglish
                       ? '👉 Tap here to open keyboard'
                       : '👉 Touchez ici pour ouvrir le clavier',
