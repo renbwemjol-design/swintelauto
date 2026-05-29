@@ -4,10 +4,34 @@ import 'hub_alertes.dart';
 import 'moteur_courtage.dart';
 import 'alerte_flash_vendeur.dart'; // 👈 On importe notre nouvel écran d'urgence flash
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final String idUtilisateur;
   const DashboardScreen({super.key, required this.idUtilisateur});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String _nomBoutiqueLocale =
+      "..."; // 👈 La variable d'ancrage visuel est ici !
+
+  @override
+  void initState() {
+    super.initState();
+    _chargerNomBoutiqueLocale(); // 👈 On réveille la mémoire flash au démarrage
+  }
+
+  Future<void> _chargerNomBoutiqueLocale() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Lit le vrai nom ou prend l'ID par défaut
+      _nomBoutiqueLocale =
+          prefs.getString('nom_magasin_local') ?? widget.idUtilisateur;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +41,9 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            isEnglish ? 'SWINTEL - Dashboard' : 'SWINTEL - Tableau de Bord',
+            isEnglish
+                ? 'SWINTEL - $_nomBoutiqueLocale'
+                : 'SWINTEL - $_nomBoutiqueLocale', // 👈 Le vrai nom surgit ici !
             style: const TextStyle(
                 color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.amber,
