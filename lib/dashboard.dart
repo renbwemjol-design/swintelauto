@@ -96,10 +96,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => EcranCreerAlerte(
-                            idGerant:
-                                widget.idUtilisateur))), // 👈 Ajout de widget.
-
+                        builder: (context) =>
+                            EcranCreerAlerte(idGerant: widget.idUtilisateur))),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
@@ -126,17 +124,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
 
-            // 📥 BOUTON 2 : HUB RECEPTION
+            // 📥 BOUTON 2 : HUB RECEPTION (PARFAITEMENT REFERMÉ !)
             Expanded(
               child: ElevatedButton(
                 onPressed: () => Navigator.push(
                     context,
-                    
                     MaterialPageRoute(
-                      builder: (context) => HubAlertesScreen(
-                          idUtilisateur: widget.idUtilisateur), // 👈 Modifié ici !
-                    ),
-                       
+                      builder: (context) =>
+                          HubAlertesScreen(idUtilisateur: widget.idUtilisateur),
+                    )), // 👈 PARENTHÈSE ET VIRGULE DE SÉCURITÉ AJOUTÉES ICI !
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -213,7 +209,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: ElevatedButton(
                 onPressed: () async {
                   try {
-                    // 🧠 On interroge Supabase pour attraper la toute dernière alerte vocale publiée sur le réseau
                     final derniereAlerte = await Supabase.instance.client
                         .from('Alertes')
                         .select('id, audio_url')
@@ -222,17 +217,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .single();
 
                     final dynamic idAlerteReel = derniereAlerte['id'];
-                    final String audioUrlReel = derniereAlerte['audio_url'] ?? '';
+                    final String audioUrlReel =
+                        derniereAlerte['audio_url'] ?? '';
 
                     if (context.mounted) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => AlerteFlashVendeurScreen(
-                            idAlerte: idAlerteReel, 
-                            idVendeur: widget.idUtilisateur, 
-                            nomMagasin: _nomBoutiqueLocale,  
-                            audioUrl: audioUrlReel, 
+                            idAlerte: idAlerteReel,
+                            idVendeur: widget.idUtilisateur,
+                            nomMagasin: _nomBoutiqueLocale,
+                            audioUrl: audioUrlReel,
                           ),
                         ),
                       );
@@ -241,7 +237,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text("🚨 Aucune alerte trouvée en base : $e"),
+                            content:
+                                Text("🚨 Aucune alerte trouvée en base : $e"),
                             backgroundColor: Colors.red),
                       );
                     }
@@ -274,7 +271,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-
           ],
         ),
       ),
