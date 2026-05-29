@@ -22,11 +22,11 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   void initState() {
     super.initState();
     // 🧠 ANTIDOTE BUG SAMSUNG : On attend la fin du dessin de l'écran pour forcer le jaillissement du clavier !
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        FocusScope.of(context).requestFocus(_vraiFocusNode);
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted) {
+    //    FocusScope.of(context).requestFocus(_vraiFocusNode);
+    //   }
+    // });
   }
 
   @override
@@ -144,7 +144,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
             // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE
             TextField(
               focusNode: _vraiFocusNode,
-              autofocus: true,
+              autofocus: false,
               controller: _telController,
               keyboardType: TextInputType.phone,
               textAlign: TextAlign.center,
