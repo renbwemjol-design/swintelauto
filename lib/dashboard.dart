@@ -96,8 +96,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            EcranCreerAlerte(idGerant: idUtilisateur))),
+                        builder: (context) => EcranCreerAlerte(
+                            idGerant:
+                                widget.idUtilisateur))), // 👈 Ajout de widget.
+
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
@@ -129,9 +131,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.push(
                     context,
+                    
                     MaterialPageRoute(
-                        builder: (context) =>
-                            HubAlertesScreen(idUtilisateur: idUtilisateur))),
+                      builder: (context) => HubAlertesScreen(
+                          idUtilisateur: widget.idUtilisateur), // 👈 Modifié ici !
+                    ),
+                       
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -221,22 +226,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         derniereAlerte['audio_url'] ?? '';
 
                     if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AlerteFlashVendeurScreen(
-                            idAlerte: idAlerteReel,
-                            idVendeur: idUtilisateur == "yabassi_rj_test"
-                                ? "Ornella_Fille_1"
-                                : idUtilisateur,
-                            nomMagasin: idUtilisateur == "yabassi_rj_test"
-                                ? "Stock Ornella"
-                                : "Mon Magasin",
-                            audioUrl:
-                                audioUrlReel, // 👈 Le vrai son WhatsApp de G1 est branché ici !
-                          ),
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AlerteFlashVendeurScreen(
+                          idAlerte: "test_uuid_labo",
+                          idVendeur: widget.idUtilisateur, // 👈 3. Ton vrai numéro en RAM !
+                          nomMagasin: _nomBoutiqueLocale,  // 👈 4. Le vrai nom extrait de Supabase !
+                          audioUrl: "",
                         ),
-                      );
+                      ),
+                    );
+
                     }
                   } catch (e) {
                     if (context.mounted) {
