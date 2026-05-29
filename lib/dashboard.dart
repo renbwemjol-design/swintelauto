@@ -208,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
 
-                        // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
+            // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
             Expanded(
               child: ElevatedButton(
                 onPressed: () async {
@@ -229,10 +229,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => AlerteFlashVendeurScreen(
-                            idAlerte: idAlerteReel, // 👈 Utilise le vrai ID récupéré !
-                            idVendeur: widget.idUtilisateur, // 👈 Ton vrai numéro en RAM !
-                            nomMagasin: _nomBoutiqueLocale,  // 👈 Le vrai nom extrait de Supabase !
-                            audioUrl: audioUrlReel, // 👈 Utilise le vrai lien audio Cloud !
+                            idAlerte: idAlerteReel, 
+                            idVendeur: widget.idUtilisateur, 
+                            nomMagasin: _nomBoutiqueLocale,  
+                            audioUrl: audioUrlReel, 
                           ),
                         ),
                       );
@@ -274,6 +274,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
+
           ],
         ),
       ),
