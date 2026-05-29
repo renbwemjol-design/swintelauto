@@ -51,7 +51,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     try {
-      // 🎯 REQUÊTE UNIFIÉE : On interroge ta table Magasins sécurisée
       final magasinTrouve = await _supabase
           .from('Magasins')
           .select('nom, telephone')
@@ -66,7 +65,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         return;
       }
 
-      // 💾 ANCRAGE EN MÉMOIRE PHYSIQUE : Gravé de manière permanente dans l'appareil
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('telephone_local', telSaisi);
       await prefs.setString(
@@ -74,10 +72,9 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
       if (mounted) {
         _afficherSucces(isEnglish
-            ? "✅ Access granted! Radar active."
-            : "✅ Accès accordé ! Radar activé.");
+            ? "Access granted! Radar active."
+            : "Accès accordé ! Radar activé.");
 
-        // 🚀 PROPULSION : On bascule vers le radar de flotte universel durable
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -100,26 +97,27 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         SnackBar(content: Text(msg), backgroundColor: Colors.green));
   }
 
-  // ⌨️ CONSTRUCTEUR VISUEL DES TOUCHES DE LA GRILLE TACTILE
+  // ⌨️ FIXATION DES TOUCHES : Taille fixe absolue sans Expanded pour interdire la disparition graphique
   Widget _creerToucheClavier(String texte) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(5.0),
-        child: SizedBox(
-          height: 50,
-          child: ElevatedButton(
-            onPressed: () => _ajouterChiffre(texte),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[200],
-              foregroundColor: Colors.black,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(texte,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: SizedBox(
+        width:
+            75, // Largeur fixe mathématique pour aligner 3 boutons sur le Samsung
+        height: 48, // Hauteur fixe réglementaire Android
+        child: ElevatedButton(
+          onPressed: () => _ajouterChiffre(texte),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange.withOpacity(0.2),
+            foregroundColor: Colors.black,
+            elevation: 1,
+            padding: EdgeInsets.zero,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
+          child: Text(texte,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -131,14 +129,13 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // 🧠 SÉCURITÉ UNIVERSELLE : On autorise le défilement uniquement pour les petits écrans comme le A10
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 🚗 LOGO INDUSTRIEL SWINTEL
+              const SizedBox(height: 10),
               const Icon(Icons.radar, size: 50, color: Colors.orange),
               const SizedBox(height: 5),
               const Text(
@@ -154,7 +151,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               Text(
                 isEnglish
                     ? 'ENTER YOUR NETWORK PHONE NUMBER ...:'
-                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE ... :', // 👈 Ton marqueur d'autorité RJ !
+                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE ... :',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontSize: 11,
@@ -163,11 +160,11 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               ),
               const SizedBox(height: 10),
 
-              // 📳 ZONE DE VISUALISATION BLOQUÉE
+              // 📳 CHAMP DE VISUALISATION SÉCURISÉ
               TextField(
                 controller: _telController,
                 readOnly:
-                    true, // 👈 Bloque le clavier natif Android et le pavé gris
+                    true, // Bloque de force l'ouverture du clavier natif défaillant
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontSize: 22,
@@ -185,60 +182,65 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               ),
               const SizedBox(height: 15),
 
-              // 🎛️ LE CLAVIER TACTILE MAISON (Intégré dans des lignes fixes pour le A10)
-              Card(
-                color: Colors.grey.withOpacity(0.1),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+              // 🎛️ GRILLE DE SAISIE TACTILE AUTONOME UNIVERSELLE
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(6.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
                         _creerToucheClavier('1'),
                         _creerToucheClavier('2'),
                         _creerToucheClavier('3')
                       ]),
-                      Row(children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
                         _creerToucheClavier('4'),
                         _creerToucheClavier('5'),
                         _creerToucheClavier('6')
                       ]),
-                      Row(children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
                         _creerToucheClavier('7'),
                         _creerToucheClavier('8'),
                         _creerToucheClavier('9')
                       ]),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(5.0),
-                              child: SizedBox(
-                                height: 50,
-                                child: IconButton(
-                                  onPressed: _effacerDernierChiffre,
-                                  icon: const Icon(Icons.backspace,
-                                      color: Colors.red),
-                                  style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.grey.withOpacity(0.3)),
+                          // Bouton retour rouge aligné
+                          Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: SizedBox(
+                              width: 75,
+                              height: 48,
+                              child: IconButton(
+                                onPressed: _effacerDernierChiffre,
+                                icon: const Icon(Icons.backspace,
+                                    color: Colors.red, size: 20),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.red.withOpacity(0.1),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 ),
                               ),
                             ),
                           ),
                           _creerToucheClavier('0'),
-                          const Expanded(child: SizedBox()),
+                          // Boîtier vide d'équilibrage graphique
+                          const SizedBox(width: 83),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
 
-              // 🚀 BOUTON D'ACTIVATION
+              // 🚀 BOUTON DE VALIDATION CLOUD
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
