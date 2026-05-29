@@ -97,27 +97,30 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         SnackBar(content: Text(msg), backgroundColor: Colors.green));
   }
 
-  // ⌨️ FIXATION DES TOUCHES : Taille fixe absolue sans Expanded pour interdire la disparition graphique
+  // ⌨️ TOUCHES MATÉRIELLES PURIFIÉES : Pas de bouton complexe, juste du pixel pur pour le A10
   Widget _creerToucheClavier(String texte) {
     return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: SizedBox(
-        width:
-            75, // Largeur fixe mathématique pour aligner 3 boutons sur le Samsung
-        height: 48, // Hauteur fixe réglementaire Android
-        child: ElevatedButton(
-          onPressed: () => _ajouterChiffre(texte),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange.withOpacity(0.2),
-            foregroundColor: Colors.black,
-            elevation: 1,
-            padding: EdgeInsets.zero,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.all(6.0),
+      child: InkWell(
+        onTap: () => _ajouterChiffre(texte),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 70,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withOpacity(0.3), width: 1),
           ),
-          child: Text(texte,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Center(
+            child: Text(
+              texte,
+              style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+            ),
+          ),
         ),
       ),
     );
