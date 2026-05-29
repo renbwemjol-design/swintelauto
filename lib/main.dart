@@ -72,37 +72,6 @@ class ReseauPiecesApp extends StatelessWidget {
     );
   }
 
-      title: 'Réseau Pièces Afrique',
-      theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
-
-      // 🧠 L'AIGUILLAGE UNIVERSEL ET DURABLE DE SWINTEL
-      home: FutureBuilder<SharedPreferences>(
-        future: SharedPreferences.getInstance(),
-        builder: (context, snapshot) {
-          // Pendant que la puce mémoire du Samsung A10 se réveille, on affiche une petite roue
-          if (!snapshot.hasData) {
-            return const Scaffold(
-                body: Center(
-                    child: CircularProgressIndicator(color: Colors.orange)));
-          }
-
-          final SharedPreferences prefs = snapshot.data!;
-          final String? telephoneLocal = prefs.getString('telephone_local');
-
-          // 🚦 LA DÉCISION DU RADAR :
-          if (telephoneLocal != null && telephoneLocal.isNotEmpty) {
-            // Si le gérant est déjà reconnu, on allume ses radars en arrière-plan d'autorité !
-            return SwintelRadarGate(idUtilisateur: telephoneLocal);
-          } else {
-            // Si c'est la toute première fois, on fait surgir l'écran d'activation unique
-            return const EcranEnregistrementScreen();
-          }
-        },
-      ),
-    );
-  }
-}
-
 class FormulaireMagasin extends StatefulWidget {
   const FormulaireMagasin({super.key});
 
