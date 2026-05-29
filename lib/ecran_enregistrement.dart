@@ -131,124 +131,137 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 🚗 LOGO INDUSTRIEL SWINTEL
-            const Icon(Icons.radar, size: 60, color: Colors.orange),
-            const SizedBox(height: 5),
-            const Text(
-              'SWINTEL',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 3),
-            ),
-            const SizedBox(height: 20),
-
-            Text(
-              isEnglish
-                  ? 'ENTER YOUR NETWORK PHONE NUMBER :'
-                  : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE :',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 10),
-
-            // 📳 ZONE DE VISUALISATION (Désactivée en écriture pour bloquer le pavé gris Android)
-            TextField(
-              controller: _telController,
-              readOnly:
-                  true, // 👈 VERROU ABSOLU : Empêche Android d'ouvrir sa fenêtre fantôme !
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: Colors.orange),
-              decoration: InputDecoration(
-                hintText: '6XXXXXXXX',
-                hintStyle:
-                    const TextStyle(color: Colors.grey, letterSpacing: 1),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      // 🧠 SÉCURITÉ UNIVERSELLE : On autorise le défilement uniquement pour les petits écrans comme le A10
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 🚗 LOGO INDUSTRIEL SWINTEL
+              const Icon(Icons.radar, size: 50, color: Colors.orange),
+              const SizedBox(height: 5),
+              const Text(
+                'SWINTEL',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3),
               ),
-            ),
-            const SizedBox(height: 15),
+              const SizedBox(height: 15),
 
-            // 🎛️ LE CLAVIER TACTILE MAISON DE SWINTEL (INFAILLIBLE ET UNIVERSEL)
-            Column(
-              children: [
-                Row(children: [
-                  _creerToucheClavier('1'),
-                  _creerToucheClavier('2'),
-                  _creerToucheClavier('3')
-                ]),
-                Row(children: [
-                  _creerToucheClavier('4'),
-                  _creerToucheClavier('5'),
-                  _creerToucheClavier('6')
-                ]),
-                Row(children: [
-                  _creerToucheClavier('7'),
-                  _creerToucheClavier('8'),
-                  _creerToucheClavier('9')
-                ]),
-                Row(
-                  children: [
-                    // Touche d'effacement à gauche
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: SizedBox(
-                          height: 50,
-                          child: IconButton(
-                            onPressed: _effacerDernierChiffre,
-                            icon:
-                                const Icon(Icons.backspace, color: Colors.red),
-                            style: IconButton.styleFrom(
-                                backgroundColor: Colors.grey[200]),
-                          ),
-                        ),
-                      ),
-                    ),
-                    _creerToucheClavier('0'),
-                    // Espace vide symétrique à droite
-                    const Expanded(child: SizedBox()),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+              Text(
+                isEnglish
+                    ? 'ENTER YOUR NETWORK PHONE NUMBER ...:'
+                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE ... :', // 👈 Ton marqueur d'autorité RJ !
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey),
+              ),
+              const SizedBox(height: 10),
 
-            // 🚀 BOUTON DE PROPULSION ET D'ACTIVATION
-            SizedBox(
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isVerifying ? null : _validerEtEnregistrerLeGerant,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+              // 📳 ZONE DE VISUALISATION BLOQUÉE
+              TextField(
+                controller: _telController,
+                readOnly:
+                    true, // 👈 Bloque le clavier natif Android et le pavé gris
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    color: Colors.orange),
+                decoration: InputDecoration(
+                  hintText: '6XXXXXXXX',
+                  hintStyle:
+                      const TextStyle(color: Colors.grey, letterSpacing: 1),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
                 ),
-                child: _isVerifying
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        isEnglish ? 'ACTIVATE MY RADAR' : 'ACTIVER MON RADAR',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
               ),
-            ),
-          ],
+              const SizedBox(height: 15),
+
+              // 🎛️ LE CLAVIER TACTILE MAISON (Intégré dans des lignes fixes pour le A10)
+              Card(
+                color: Colors.grey.withOpacity(0.1),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      Row(children: [
+                        _creerToucheClavier('1'),
+                        _creerToucheClavier('2'),
+                        _creerToucheClavier('3')
+                      ]),
+                      Row(children: [
+                        _creerToucheClavier('4'),
+                        _creerToucheClavier('5'),
+                        _creerToucheClavier('6')
+                      ]),
+                      Row(children: [
+                        _creerToucheClavier('7'),
+                        _creerToucheClavier('8'),
+                        _creerToucheClavier('9')
+                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: SizedBox(
+                                height: 50,
+                                child: IconButton(
+                                  onPressed: _effacerDernierChiffre,
+                                  icon: const Icon(Icons.backspace,
+                                      color: Colors.red),
+                                  style: IconButton.styleFrom(
+                                      backgroundColor:
+                                          Colors.grey.withOpacity(0.3)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          _creerToucheClavier('0'),
+                          const Expanded(child: SizedBox()),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              // 🚀 BOUTON D'ACTIVATION
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed:
+                      _isVerifying ? null : _validerEtEnregistrerLeGerant,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
+                  ),
+                  child: _isVerifying
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          isEnglish ? 'ACTIVATE MY RADAR' : 'ACTIVER MON RADAR',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
