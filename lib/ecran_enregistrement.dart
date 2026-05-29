@@ -151,7 +151,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               Text(
                 isEnglish
                     ? 'ENTER YOUR NETWORK PHONE NUMBER ...:'
-                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE ... :',
+                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE ??? :',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontSize: 11,

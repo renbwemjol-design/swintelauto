@@ -10,6 +10,7 @@ import 'dashboard.dart';
 import 'swintel_radar.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 👈 Pour lire la mémoire physique
 import 'ecran_enregistrement.dart'; // 👈 Pour appeler l'écran d'activation
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // main copy 2, tourne jusqu'à l'enregisrement des coord GPS ok
 
@@ -32,10 +33,45 @@ class ReseauPiecesApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Réseau Pièces Afrique',
+      theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
+      
+      // 🎯 SÉCURITÉ LINGUISTIQUE DU GOUDRON : Conserve tes deux langues et libère les boutons
       supportedLocales: const [
         Locale('fr', ''), // 👈 Active le Français
         Locale('en', ''), // 👈 Active l'Anglais
       ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      // 🧠 L'AIGUILLAGE UNIVERSEL ET ASYNCHRONE DE SWINTEL
+      home: FutureBuilder<SharedPreferences>(
+        future: SharedPreferences.getInstance(),
+        builder: (context, snapshot) {
+          // Pendant que la puce mémoire du Samsung A10 se réveille, on affiche une petite roue
+          if (!snapshot.hasData) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange)));
+          }
+
+          final SharedPreferences prefs = snapshot.data!;
+          final String? telephoneLocal = prefs.getString('telephone_local');
+
+          // 🚦 LA DÉCISION DU RADAR :
+          if (telephoneLocal != null && telephoneLocal.isNotEmpty) {
+            // Si le gérant est déjà reconnu, on allume ses radars en arrière-plan d'autorité !
+            return SwintelRadarGate(idUtilisateur: telephoneLocal);
+          } else {
+            // Si c'est la toute première fois, on fait surgir l'écran d'activation unique
+            return const EcranEnregistrementScreen();
+          }
+        },
+      ),
+    );
+  }
+
       title: 'Réseau Pièces Afrique',
       theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
 
