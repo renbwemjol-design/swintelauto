@@ -95,7 +95,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.green));
   }
-    @override
+
+  @override
   Widget build(BuildContext context) {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
@@ -104,7 +105,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // Centrage vertical absolu
+          mainAxisAlignment:
+              MainAxisAlignment.center, // Centrage vertical absolu
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 🚗 LOGO INDUSTRIEL SWINTEL
@@ -113,22 +115,29 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
             const Text(
               'SWINTEL',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3),
+              style: TextStyle(
+                  fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3),
             ),
             Text(
               isEnglish ? 'Réseau Pièces Afrique' : 'Réseau Pièces Afrique',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
 
             // RECONNAISSANCE DU GÉRANT
             Text(
-              isEnglish 
-                  ? 'ENTER YOUR NETWORK PHONE NUMBER :' 
+              isEnglish
+                  ? 'ENTER YOUR NETWORK PHONE NUMBER :'
                   : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE :',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueGrey),
             ),
             const SizedBox(height: 15),
 
@@ -139,17 +148,21 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
               controller: _telController,
               keyboardType: TextInputType.phone,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.keyboard, color: Colors.orange),
                 hintText: '6XXXXXXXX',
-                hintStyle: const TextStyle(color: Colors.grey, letterSpacing: 1),
-                helperText: isEnglish 
-                    ? '👉 Tap here to open keyboard' 
+                hintStyle:
+                    const TextStyle(color: Colors.grey, letterSpacing: 1),
+                helperText: isEnglish
+                    ? '👉 Tap here to open keyboard'
                     : '👉 Touchez ici pour ouvrir le clavier',
-                helperStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                helperStyle: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.blueGrey),
                 contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Colors.orange, width: 2),
@@ -166,14 +179,16 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 3,
                 ),
                 child: _isVerifying
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         isEnglish ? 'ACTIVATE MY RADAR' : 'ACTIVER MON RADAR',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
@@ -182,5 +197,4 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       ),
     );
   }
-
 }
