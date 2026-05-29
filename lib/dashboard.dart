@@ -208,12 +208,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
 
-            // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
+                        // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
             Expanded(
               child: ElevatedButton(
                 onPressed: () async {
-                  // 🧠 On interroge Supabase pour attraper la toute dernière alerte vocale publiée sur le réseau
                   try {
+                    // 🧠 On interroge Supabase pour attraper la toute dernière alerte vocale publiée sur le réseau
                     final derniereAlerte = await Supabase.instance.client
                         .from('Alertes')
                         .select('id, audio_url')
@@ -222,29 +222,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .single();
 
                     final dynamic idAlerteReel = derniereAlerte['id'];
-                    final String audioUrlReel =
-                        derniereAlerte['audio_url'] ?? '';
+                    final String audioUrlReel = derniereAlerte['audio_url'] ?? '';
 
                     if (context.mounted) {
-                     Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AlerteFlashVendeurScreen(
-                          idAlerte: "test_uuid_labo",
-                          idVendeur: widget.idUtilisateur, // 👈 3. Ton vrai numéro en RAM !
-                          nomMagasin: _nomBoutiqueLocale,  // 👈 4. Le vrai nom extrait de Supabase !
-                          audioUrl: "",
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AlerteFlashVendeurScreen(
+                            idAlerte: idAlerteReel, // 👈 Utilise le vrai ID récupéré !
+                            idVendeur: widget.idUtilisateur, // 👈 Ton vrai numéro en RAM !
+                            nomMagasin: _nomBoutiqueLocale,  // 👈 Le vrai nom extrait de Supabase !
+                            audioUrl: audioUrlReel, // 👈 Utilise le vrai lien audio Cloud !
+                          ),
                         ),
-                      ),
-                    );
-
+                      );
                     }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content:
-                                Text("🚨 Aucune alerte trouvée en base : $e"),
+                            content: Text("🚨 Aucune alerte trouvée en base : $e"),
                             backgroundColor: Colors.red),
                       );
                     }
