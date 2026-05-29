@@ -13,31 +13,36 @@ class EcranEnregistrementScreen extends StatefulWidget {
 
 class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   final _telController = TextEditingController();
-  final FocusNode _vraiFocusNode =
-      FocusNode(); // 👈 ADDS THIS EXCLUSIVE LINE HERE !
   final SupabaseClient _supabase = Supabase.instance.client;
   bool _isVerifying = false;
 
   @override
-  void initState() {
-    super.initState();
-    // 🧠 ANTIDOTE BUG SAMSUNG : On attend la fin du dessin de l'écran pour forcer le jaillissement du clavier !
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (mounted) {
-    //    FocusScope.of(context).requestFocus(_vraiFocusNode);
-    //   }
-    // });
-  }
-
-  @override
   void dispose() {
     _telController.dispose();
-    _vraiFocusNode
-        .dispose(); // 👈 Libère proprement la mémoire vive du Samsung A10
     super.dispose();
   }
 
-  // 🧠 LE COEUR INDUSTRIEL : Vérifie le numéro sur la table Magasins et l'ancre en RAM
+  // 🧠 MECANISME CLAVIER TACTILE : Écrit le chiffre sur l'écran
+  void _ajouterChiffre(String chiffre) {
+    if (_telController.text.length < 9) {
+      // Limite stricte à 9 chiffres pour Camp Yabassi
+      setState(() {
+        _telController.text += chiffre;
+      });
+    }
+  }
+
+  // 🧼 TOUCHE RETOUR : Efface le dernier caractère saisi
+  void _effacerDernierChiffre() {
+    if (_telController.text.isNotEmpty) {
+      setState(() {
+        _telController.text =
+            _telController.text.substring(0, _telController.text.length - 1);
+      });
+    }
+  }
+
+  // 🎯 REQUÊTE D'AUTORITÉ : On cherche si le numéro existe dans ton dictionnaire Magasins
   Future<void> _validerEtEnregistrerLeGerant() async {
     final String telSaisi = _telController.text.trim();
     if (telSaisi.isEmpty) return;
@@ -46,7 +51,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     try {
-      // 🎯 REQUÊTE D'AUTORITÉ : On cherche si le numéro existe dans ton dictionnaire Magasins
+      // 🎯 REQUÊTE UNIFIÉE : On interroge ta table Magasins sécurisée
       final magasinTrouve = await _supabase
           .from('Magasins')
           .select('nom, telephone')
@@ -54,7 +59,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
           .maybeSingle();
 
       if (magasinTrouve == null) {
-        // Si le numéro n'est pas enregistré par l'admin dans la base
         setState(() => _isVerifying = false);
         _afficherErreur(isEnglish
             ? "🚨 Number not recognized in SWINTEL network!"
@@ -62,7 +66,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         return;
       }
 
-      // 💾 ANCRAGE PHYSIQUE : Le numéro et le nom de la boutique sont gravés dans le smartphone
+      // 💾 ANCRAGE EN MÉMOIRE PHYSIQUE : Gravé de manière permanente dans l'appareil
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('telephone_local', telSaisi);
       await prefs.setString(
@@ -73,7 +77,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
             ? "✅ Access granted! Radar active."
             : "✅ Accès accordé ! Radar activé.");
 
-        // 🚀 PROPULSION : On bascule d'autorité vers le radar de flotte universel
+        // 🚀 PROPULSION : On bascule vers le radar de flotte universel durable
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -96,6 +100,31 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         SnackBar(content: Text(msg), backgroundColor: Colors.green));
   }
 
+  // ⌨️ CONSTRUCTEUR VISUEL DES TOUCHES DE LA GRILLE TACTILE
+  Widget _creerToucheClavier(String texte) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            onPressed: () => _ajouterChiffre(texte),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[200],
+              foregroundColor: Colors.black,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(texte,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
@@ -103,73 +132,100 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center, // Centrage vertical absolu
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 🚗 LOGO INDUSTRIEL SWINTEL
-            const Icon(Icons.radar, size: 80, color: Colors.orange),
-            const SizedBox(height: 15),
+            const Icon(Icons.radar, size: 60, color: Colors.orange),
+            const SizedBox(height: 5),
             const Text(
               'SWINTEL',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3),
+                  fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 3),
             ),
-            Text(
-              isEnglish ? 'Réseau Pièces Afrique' : 'Réseau Pièces Afrique',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
 
-            // RECONNAISSANCE DU GÉRANT
             Text(
               isEnglish
                   ? 'ENTER YOUR NETWORK PHONE NUMBER :'
                   : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE :',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Colors.blueGrey),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
 
-            // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE
+            // 📳 ZONE DE VISUALISATION (Désactivée en écriture pour bloquer le pavé gris Android)
             TextField(
-              focusNode: _vraiFocusNode,
-              autofocus: false,
               controller: _telController,
-              keyboardType: TextInputType.phone,
+              readOnly:
+                  true, // 👈 VERROU ABSOLU : Empêche Android d'ouvrir sa fenêtre fantôme !
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  color: Colors.orange),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.keyboard, color: Colors.orange),
                 hintText: '6XXXXXXXX',
                 hintStyle:
                     const TextStyle(color: Colors.grey, letterSpacing: 1),
-                helperText: isEnglish
-                    ? '👉 Tap here to open keyboard'
-                    : '👉 Touchez ici pour ouvrir le clavier',
-                helperStyle: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.orange, width: 2),
-                ),
               ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 15),
+
+            // 🎛️ LE CLAVIER TACTILE MAISON DE SWINTEL (INFAILLIBLE ET UNIVERSEL)
+            Column(
+              children: [
+                Row(children: [
+                  _creerToucheClavier('1'),
+                  _creerToucheClavier('2'),
+                  _creerToucheClavier('3')
+                ]),
+                Row(children: [
+                  _creerToucheClavier('4'),
+                  _creerToucheClavier('5'),
+                  _creerToucheClavier('6')
+                ]),
+                Row(children: [
+                  _creerToucheClavier('7'),
+                  _creerToucheClavier('8'),
+                  _creerToucheClavier('9')
+                ]),
+                Row(
+                  children: [
+                    // Touche d'effacement à gauche
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: SizedBox(
+                          height: 50,
+                          child: IconButton(
+                            onPressed: _effacerDernierChiffre,
+                            icon:
+                                const Icon(Icons.backspace, color: Colors.red),
+                            style: IconButton.styleFrom(
+                                backgroundColor: Colors.grey[200]),
+                          ),
+                        ),
+                      ),
+                    ),
+                    _creerToucheClavier('0'),
+                    // Espace vide symétrique à droite
+                    const Expanded(child: SizedBox()),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
             // 🚀 BOUTON DE PROPULSION ET D'ACTIVATION
             SizedBox(
