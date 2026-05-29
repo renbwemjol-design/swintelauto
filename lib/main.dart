@@ -35,7 +35,7 @@ class ReseauPiecesApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Réseau Pièces Afrique',
       theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
-      
+
       // 🎯 SÉCURITÉ LINGUISTIQUE DU GOUDRON : Conserve tes deux langues et libère les boutons
       supportedLocales: const [
         Locale('fr', ''), // 👈 Active le Français
@@ -53,7 +53,9 @@ class ReseauPiecesApp extends StatelessWidget {
         builder: (context, snapshot) {
           // Pendant que la puce mémoire du Samsung A10 se réveille, on affiche une petite roue
           if (!snapshot.hasData) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange)));
+            return const Scaffold(
+                body: Center(
+                    child: CircularProgressIndicator(color: Colors.orange)));
           }
 
           final SharedPreferences prefs = snapshot.data!;
@@ -71,6 +73,7 @@ class ReseauPiecesApp extends StatelessWidget {
       ),
     );
   }
+}
 
 class FormulaireMagasin extends StatefulWidget {
   const FormulaireMagasin({super.key});
