@@ -95,114 +95,92 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.green));
   }
-
-  @override
+    @override
   Widget build(BuildContext context) {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 🚗 LOGO INDUSTRIEL SWINTEL
-              const Icon(Icons.radar, size: 80, color: Colors.orange),
-              const SizedBox(height: 15),
-              const Text(
-                'SWINTEL',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 3),
-              ),
-              Text(
-                isEnglish ? 'Réseau Pièces Afrique' : 'Réseau Pièces Afrique',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 40),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, // Centrage vertical absolu
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 🚗 LOGO INDUSTRIEL SWINTEL
+            const Icon(Icons.radar, size: 80, color: Colors.orange),
+            const SizedBox(height: 15),
+            const Text(
+              'SWINTEL',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3),
+            ),
+            Text(
+              isEnglish ? 'Réseau Pièces Afrique' : 'Réseau Pièces Afrique',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 40),
 
-              // CHRECONNAISSANCE DU GÉRANT
-              Text(
-                isEnglish
-                    ? 'ENTER YOUR NETWORK PHONE NUMBER :'
-                    : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE :',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey),
-              ),
-              const SizedBox(height: 15),
+            // RECONNAISSANCE DU GÉRANT
+            Text(
+              isEnglish 
+                  ? 'ENTER YOUR NETWORK PHONE NUMBER :' 
+                  : 'ENTREZ LE NUMÉRO DE TÉLÉPHONE DE VOTRE BOUTIQUE :',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+            ),
+            const SizedBox(height: 15),
 
-              // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE (VERSION NETTOYÉE POUR LE A10)
-              TextField(
-                focusNode: _vraiFocusNode,
-                autofocus: true,
-                controller: _telController,
-                keyboardType: TextInputType.phone,
-                textAlign: TextAlign.center, // 👈 Alignement direct et stable !
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.keyboard, color: Colors.orange),
-                  hintText: '6XXXXXXXX',
-                  hintStyle:
-                      const TextStyle(color: Colors.grey, letterSpacing: 1),
-                  helperText: isEnglish
-                      ? '👉 Tap here to open keyboard'
-                      : '👉 Touchez ici pour ouvrir le clavier',
-                  helperStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Colors.orange, width: 2),
-                  ),
+            // 📳 CHAMP DE SAISIE DU NUMÉRO DE FLOTTE
+            TextField(
+              focusNode: _vraiFocusNode,
+              autofocus: true,
+              controller: _telController,
+              keyboardType: TextInputType.phone,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.keyboard, color: Colors.orange),
+                hintText: '6XXXXXXXX',
+                hintStyle: const TextStyle(color: Colors.grey, letterSpacing: 1),
+                helperText: isEnglish 
+                    ? '👉 Tap here to open keyboard' 
+                    : '👉 Touchez ici pour ouvrir le clavier',
+                helperStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.orange, width: 2),
                 ),
               ),
+            ),
+            const SizedBox(height: 25),
 
-              const SizedBox(height: 20),
-
-              // 🚀 BOUTON DE PROPULSION ET D'ACTIVATION
-              SizedBox(
-                height: 55,
-                child: ElevatedButton(
-                  onPressed:
-                      _isVerifying ? null : _validerEtEnregistrerLeGerant,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 3,
-                  ),
-                  child: _isVerifying
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          isEnglish ? 'ACTIVATE MY RADAR' : 'ACTIVER MON RADAR',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
-                        ),
+            // 🚀 BOUTON DE PROPULSION ET D'ACTIVATION
+            SizedBox(
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _isVerifying ? null : _validerEtEnregistrerLeGerant,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 3,
                 ),
+                child: _isVerifying
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        isEnglish ? 'ACTIVATE MY RADAR' : 'ACTIVER MON RADAR',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
 }
