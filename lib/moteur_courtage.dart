@@ -32,9 +32,41 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   @override
   void initState() {
     super.initState();
+    // 🧠 DOUBLE CANAL : On active l'écouteur direct ET on force une vérification immédiate au réveil !
     _ecouterReponsesFlotteEnDirect();
-    // Au départ, on affiche une liste vide en attendant le clic physique du spécialiste
+    _verifierSiUneReponseExisteDeja();
     setState(() => _isLoading = false);
+  }
+
+  // 🎯 VERIFICATION CLOUD AU RÉVEIL : Évite que l'écran ne reste figé à cause de la latence réseau
+  Future<void> _verifierSiUneReponseExisteDeja() async {
+    try {
+      // On cherche la ligne de l'alerte en cours pour lire son état actuel
+      final alerteEnBase = await _supabase
+          .from('Alertes')
+          .select('statut_alerte')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (alerteEnBase != null) {
+        final String statutAlerte = alerteEnBase['statut_alerte'] ?? '';
+
+        if (statutAlerte.startsWith('reponse_') ||
+            statutAlerte.startsWith('réponse_')) {
+          final String magasinVolontaire = statutAlerte
+              .replaceFirst('reponse_', '')
+              .replaceFirst('réponse_', '')
+              .trim();
+
+          if (magasinVolontaire.isNotEmpty) {
+            _chargerLeSpecialisteVolontaire(magasinVolontaire);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Erreur éveil initial : $e");
+    }
   }
 
   // 📡 Étape 3 : Branchement Realtime tolérant aux accents (réponse_ ou reponse_)
