@@ -72,11 +72,9 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 🎯 LA REQUÊTE SUR MESURE : Filtrage strict sur le nom extrait du statut
-      final donnees = await _supabase
-          .from('Magasins')
-          .select()
-          .eq('nom', nomDuMagasinQuiARepondu); // 👈 EXCLUSIVITÉ TOTALE !
+      // 🎯 REQUÊTE D'ÉLITE INDESTRUCTIBLE : Tolérante aux majuscules/minuscules pour ORNY AUTO
+      final donnees = await _supabase.from('Magasins').select().ilike('nom',
+          '%$nomDuMagasinQuiARepondu%'); // 👈 Remplacé .eq par .ilike d'autorité !
 
       List<Map<String, dynamic>> listeFiltree = [];
 

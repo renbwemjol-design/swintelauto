@@ -61,22 +61,22 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     }
   }
 
-  // 🟢 2. Action positive : "J'AI LA PIÈCE" (+10 pts)
+  // 🟢 2. Action positive : "J'AI LA PIÈCE" (+10 pts) (VERSION VERROUILLÉE ET RAPIDE)
   Future<void> _repondreOui() async {
     setState(() => _isProcessing = true);
     try {
-      // Écriture du bonus de fiabilité dans Supabase
+      // 🧠 PRIORITÉ TEMPS RÉEL : On envoie d'abord la signature pour libérer l'écran émetteur instantanément
+      await _supabase.from('Alertes').update({
+        'statut_alerte':
+            'reponse_${widget.nomMagasin}', // 👈 Exemple: reponse_ORNY AUTO
+      }).eq('id', widget.idAlerte);
+
+      // Écriture secondaire du bonus de fiabilité dans Supabase
       await _supabase.from('BonusCourtage').insert({
         'courtier_id': widget.idVendeur,
         'magasin_cible_nom': widget.nomMagasin,
         'points_gagnes': 10, // +10 points de fiabilité
       });
-
-      // 🧠 SIGNATURE SÉMANTIQUE : On fusionne le statut et le nom du magasin volontaire
-      await _supabase.from('Alertes').update({
-        'statut_alerte':
-            'reponse_${widget.nomMagasin}', // 👈 Exemple: reponse_Stock Ornella Central
-      }).eq('id', widget.idAlerte);
 
       if (mounted) {
         _afficherMessage(
@@ -85,8 +85,11 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
             context); // Ferme l'écran de mission (Balayage automatique)
       }
     } catch (e) {
-      setState(() => _isProcessing = false);
-      _afficherMessage("Erreur : $e", Colors.red);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _afficherErreur(
+            "Erreur : $e"); // On utilise ton afficheur d'erreur d'origine
+      }
     }
   }
 
