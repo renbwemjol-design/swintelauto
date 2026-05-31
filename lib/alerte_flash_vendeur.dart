@@ -87,8 +87,8 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        _afficherErreur(
-            "Erreur : $e"); // On utilise ton afficheur d'erreur d'origine
+        _afficherMessage(
+            "Erreur : $e", Colors.red); // 👈 Rejoint ta fonction d'origine !
       }
     }
   }
