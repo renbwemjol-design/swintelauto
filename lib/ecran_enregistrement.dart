@@ -75,10 +75,16 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
             ? "Access granted! Radar active."
             : "Accès accordé ! Radar activé.");
 
+        // 🚀 PROPULSION : On bascule vers le radar avec le numéro ET le vrai nom extrait de Supabase !
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-              builder: (context) => SwintelRadarGate(idUtilisateur: telSaisi)),
+            builder: (context) => SwintelRadarGate(
+              idUtilisateur: telSaisi,
+              nomMagasinLocal: magasinTrouve['nom'] ??
+                  'Spécialiste', // 👈 TRANSMET LA SIGNATURE REFUGE ICI !
+            ),
+          ),
         );
       }
     } catch (e) {

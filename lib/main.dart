@@ -60,11 +60,17 @@ class ReseauPiecesApp extends StatelessWidget {
 
           final SharedPreferences prefs = snapshot.data!;
           final String? telephoneLocal = prefs.getString('telephone_local');
+          final String nomBoutique =
+              prefs.getString('nom_magasin_local') ?? 'Magasin';
 
           // 🚦 LA DÉCISION DU RADAR :
           if (telephoneLocal != null && telephoneLocal.isNotEmpty) {
-            // Si le gérant est déjà reconnu, on allume ses radars en arrière-plan d'autorité !
-            return SwintelRadarGate(idUtilisateur: telephoneLocal);
+            // 📡 On allume ses radars en arrière-plan d'autorité en passant le numéro ET le vrai nom !
+            return SwintelRadarGate(
+              idUtilisateur: telephoneLocal,
+              nomMagasinLocal:
+                  nomBoutique, // 👈 ENVOIE LA SIGNATURE DYNAMIQUE DE LA BOUTIQUE !
+            );
           } else {
             // Si c'est la toute première fois, on fait surgir l'écran d'activation unique
             return const EcranEnregistrementScreen();

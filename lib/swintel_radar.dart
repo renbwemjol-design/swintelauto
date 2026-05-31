@@ -6,7 +6,13 @@ import 'alerte_flash_vendeur.dart'; // Écran d'urgence à gros boutons YES/NO
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
-  const SwintelRadarGate({super.key, required this.idUtilisateur});
+  final String nomMagasinLocal; 
+
+  const SwintelRadarGate({
+    super.key, 
+    required this.idUtilisateur,
+    required this.nomMagasinLocal, 
+  });
 
   @override
   State<SwintelRadarGate> createState() => _SwintelRadarGateState();
@@ -26,8 +32,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
     _supabase
         .channel('public:Alertes')
         .onPostgresChanges(
-          event: PostgresChangeEvent
-              .insert, // Uniquement sur les NOUVELLES demandes
+          event: PostgresChangeEvent.insert, // Uniquement sur les NOUVELLES demandes
           schema: 'public',
           table: 'Alertes',
           callback: (payload) async {
@@ -42,8 +47,11 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             if (mounted) {
               // 📳 ACTION 1 : Déclenchement de la vibration physique (Pattern Saccadé d'urgence)
               if (await Vibration.hasVibrator() ?? false) {
-                // 500ms vibration, 200ms pause, 500ms vibration...
-                Vibration.vibrate(pattern: [0, 500, 200, 500, 200, 500]);
+                // 500ms vibration, 200ms pause, 500ms vibration... Intensité maximale (255) !
+                Vibration.vibrate(
+                  pattern:,
+                  intensities:,
+                );
               }
 
               // 🚀 ACTION 2 : L'écran de mission Flash surgit de force !
@@ -53,7 +61,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                   builder: (context) => AlerteFlashVendeurScreen(
                     idAlerte: idAlerte,
                     idVendeur: widget.idUtilisateur,
-                    nomMagasin: "Stock Spécialiste Test",
+                    nomMagasin: widget.nomMagasinLocal, // CHARGE LE VRAI NOM EN RAM DYNAMIQUE !
                     audioUrl: audioUrl,
                   ),
                 ),
