@@ -132,6 +132,8 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
               typeRecherche: pieceSimulee,
               latG1: 4.0510, // Position de test de G1 à Douala
               lngG1: 9.7679,
+              idUtilisateur:
+                  widget.idGerant, // 👈 INJECTE CETTE LIGNE D'AUTORITÉ ICI !
             ),
           ),
         );
