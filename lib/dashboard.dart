@@ -166,11 +166,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const MoteurCourtageScreen(
+                      builder: (context) => MoteurCourtageScreen(
                         marqueRecherche: "Toyota",
                         typeRecherche: "Amortisseur",
                         latG1: 4.0510,
                         lngG1: 9.7679,
+                        idUtilisateur: widget
+                            .idUtilisateur, // 👈 AJOUTE CETTE LIGNE D'AUTORITÉ ICI !
                       ),
                     ),
                   );

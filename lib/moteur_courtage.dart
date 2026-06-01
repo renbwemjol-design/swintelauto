@@ -8,6 +8,7 @@ class MoteurCourtageScreen extends StatefulWidget {
   final String typeRecherche; // Transmis depuis la dictée (Ex: Amortisseur)
   final double latG1; // Latitude du gérant émetteur
   final double lngG1; // Longitude du gérant émetteur
+  final String idUtilisateur; // 👈 AJOUTE CETTE PROPRIÉTÉ EXTRA-CRUCIALE ICI !
 
   const MoteurCourtageScreen({
     super.key,
@@ -15,6 +16,7 @@ class MoteurCourtageScreen extends StatefulWidget {
     required this.typeRecherche,
     required this.latG1,
     required this.lngG1,
+    required this.idUtilisateur, // 👈 COMMANDE CET IMPÉRATIF ICI !
   });
 
   @override
