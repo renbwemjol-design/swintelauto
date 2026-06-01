@@ -198,34 +198,40 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   }
 
   // 🎁 L'INSERTION PURE DE 18H15 (Avec le pop-up d'autorité "D'ACCORD")
+  // 🎁 L'INSERTION PURE : Finie la version de labo, place au vrai gérant en RAM
   Future<void> _attribuerBonusFiche(String nomMagasin) async {
     try {
       await _supabase.from('BonusCourtage').insert({
-        'courtier_id': 'yabassi_rj_test',
+        'courtier_id': widget
+            .idUtilisateur, // 👈 Prends enfin le vrai numéro du gérant actif !
         'magasin_cible_nom': nomMagasin,
         'points_gagnes': 10,
       });
 
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("🎯 BONUS ATTRIBUÉ !"),
-          content: Text(
-              "Fiche envoyée à $nomMagasin. Votre coefficient de courtage a été augmenté !"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("D'ACCORD"),
-            ),
-          ],
-        ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("🎯 BONUS ATTRIBUÉ !"),
+            content: Text(
+                "Fiche envoyée à $nomMagasin. Votre coefficient de courtage a été augmenté !"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("D'ACCORD"),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text("Erreur enregistrement bonus : $e"),
-            backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("Erreur enregistrement bonus : $e"),
+              backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

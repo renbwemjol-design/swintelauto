@@ -50,8 +50,8 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               if (await Vibration.hasVibrator() ?? false) {
                 // 500ms vibration, 200ms pause, 500ms vibration... Intensité maximale (255) !
                 Vibration.vibrate(
-                  pattern: [0, 500, 200, 500, 200, 800],
-                  intensities: [0, 255, 0, 255, 0, 255],
+                  pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
+                  intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
                 );
               }
 
