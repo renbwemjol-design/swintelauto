@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 👈 AJOUTE CETTE LIGNE DE FORCE ICI !
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
@@ -28,7 +29,6 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
   }
 
   void _allumerRadarDeFlotte() {
-    // 🧠 ÉCOUTE EN TEMPS RÉEL INTERNE DE LA TABLE ALERTES
     _supabase
         .channel('public:Alertes')
         .onPostgresChanges(
@@ -46,14 +46,18 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             if (demandeurId == widget.idUtilisateur) return;
 
             if (mounted) {
-              // 📳 ACTION 1 : Déclenchement de la vibration physique (Pattern Saccadé d'urgence)
+              // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
               if (await Vibration.hasVibrator() ?? false) {
-                // 500ms vibration, 200ms pause, 500ms vibration... Intensité maximale (255) !
                 Vibration.vibrate(
                   pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
                   intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
                 );
               }
+
+              // 🔊 ACTION 1.B : ACCENTUATION SONORE SYSTEM (Double bip d'urgence inratable)
+              await SystemSound.play(SystemSoundType.click);
+              await Future.delayed(const Duration(milliseconds: 150));
+              await SystemSound.play(SystemSoundType.click);
 
               // 🚀 ACTION 2 : L'écran de mission Flash surgit de force !
               Navigator.push(
@@ -61,9 +65,10 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 MaterialPageRoute(
                   builder: (context) => AlerteFlashVendeurScreen(
                     idAlerte: idAlerte,
-                    idVendeur: widget.idUtilisateur,
+                    idVendeur:
+                        demandeurId, // 👈 RECOUTURE : On transmet l'ID du vrai courtier émetteur !
                     nomMagasin: widget
-                        .nomMagasinLocal, // CHARGE LE VRAI NOM EN RAM DYNAMIQUE !
+                        .nomMagasinLocal, // C'est la boutique réceptrice actuelle (ORNY AUTO)
                     audioUrl: audioUrl,
                   ),
                 ),

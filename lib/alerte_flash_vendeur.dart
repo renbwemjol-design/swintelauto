@@ -62,33 +62,34 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   }
 
   // 🟢 2. Action positive : "J'AI LA PIÈCE" (+10 pts) (VERSION VERROUILLÉE ET RAPIDE)
+  // 🟢 ACTION POSITIVE : "J'AI LA PIÈCE" (VRAI ALIGNEMENT DES RÔLES EN BASE DE DONNÉES)
   Future<void> _repondreOui() async {
     setState(() => _isProcessing = true);
     try {
-      // 🧠 PRIORITÉ TEMPS RÉEL : On envoie d'abord la signature pour libérer l'écran émetteur instantanément
+      // 🧠 COUTURE TEMPS RÉEL : On écrit d'abord la signature pour libérer l'émetteur instantanément
       await _supabase.from('Alertes').update({
         'statut_alerte':
-            'reponse_${widget.nomMagasin}', // 👈 Exemple: reponse_ORNY AUTO
+            'reponse_${widget.nomMagasin}', // Exemple: reponse_ORNY AUTO
       }).eq('id', widget.idAlerte);
 
-      // Écriture secondaire du bonus de fiabilité dans Supabase
+      // 🏆 DISTRIBUTION DES POINTS : Le courtier_id reçoit l'ID de l'émetteur et le nom reçoit la cible
       await _supabase.from('BonusCourtage').insert({
-        'courtier_id': widget.idVendeur,
-        'magasin_cible_nom': widget.nomMagasin,
-        'points_gagnes': 10, // +10 points de fiabilité
+        'courtier_id': widget
+            .idVendeur, // 👈 C'est l'idUtilisateur/demandeurId transmis (Le vrai courtier !)
+        'magasin_cible_nom': widget
+            .nomMagasin, // 👈 C'est la boutique qui clique (ORNY AUTO ou MAMBENI AUTO)
+        'points_gagnes': 10,
       });
 
       if (mounted) {
         _afficherMessage(
             "🎯 Part confirmed! +10 pts reliability score", Colors.green);
-        Navigator.pop(
-            context); // Ferme l'écran de mission (Balayage automatique)
+        Navigator.pop(context); // Ferme proprement l'écran flash
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        _afficherMessage(
-            "Erreur : $e", Colors.red); // 👈 Rejoint ta fonction d'origine !
+        _afficherMessage("Erreur : $e", Colors.red);
       }
     }
   }
