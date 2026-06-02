@@ -108,11 +108,12 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
       final audioUrl =
           _supabase.storage.from('audios_recrutement').getPublicUrl(fileName);
 
+      // 🧠 SÉCURITÉ RÉSEAU : Statut réglementaire 'en_attente' pour réveiller les radars de la flotte !
       await _supabase.from('Alertes').insert({
         'demandeur_id': widget.idGerant,
         'type_flux': _typeFluxSelected,
         'audio_url': audioUrl,
-        'statut_alerte': 'en_cours',
+        'statut_alerte': 'en_attente', // 👈 CORRIGÉ ICI D'AUTORITÉ !
       });
 
       if (mounted) {
