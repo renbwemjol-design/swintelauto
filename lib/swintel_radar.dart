@@ -1,7 +1,6 @@
 import 'dart:async'; // 👈 1. Ajout de l'infrastructure asynchrone des Streams !
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.gov';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
