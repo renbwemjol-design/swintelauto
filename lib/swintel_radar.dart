@@ -1,10 +1,12 @@
 import 'dart:async'; // 👈 1. Ajout de l'infrastructure asynchrone des Streams !
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.gov';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
-import 'alerte_flash_vendeur.dart'; 
+import 'alerte_flash_vendeur.dart';
+import 'package:just_audio/just_audio.dart'; // 👈 Compagnon multimédia d'autorité !
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -22,7 +24,9 @@ class SwintelRadarGate extends StatefulWidget {
 
 class _SwintelRadarGateState extends State<SwintelRadarGate> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  StreamSubscription? _radarSubscription; // 👈 2. Le filet de sécurité pour couper le flux proprement !
+  StreamSubscription? _radarSubscription;
+  final AudioPlayer _alertAudioPlayer =
+      AudioPlayer(); // 👈 Casque de choc pour la sirène multimédia !
 
   @override
   void initState() {
@@ -47,22 +51,30 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String statutAlerte = alerte['statut_alerte'] ?? '';
 
           // 🛡️ FILTRES ET SÉCURITÉS SÉMANTIQUES :
-          if (statutAlerte != 'en_attente') return; // Uniquement si l'alerte attend preneur !
-          if (demandeurId == widget.idUtilisateur) return; // Sécurité absolue anti-auto-vibration !
+          if (statutAlerte != 'en_attente')
+            return; // Uniquement si l'alerte attend preneur !
+          if (demandeurId == widget.idUtilisateur)
+            return; // Sécurité absolue anti-auto-vibration !
 
           if (mounted) {
             // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
             if (await Vibration.hasVibrator() ?? false) {
               Vibration.vibrate(
-                pattern:,
-                intensities:,
+                pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
+                intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
               );
             }
 
-            // 🔊 ACTION 1.B : ACCENTUATION SONORE SYSTEM (Double bip d'urgence inratable)
-            await SystemSound.play(SystemSoundType.click);
-            await Future.delayed(const Duration(milliseconds: 150));
-            await SystemSound.play(SystemSoundType.click);
+            // 🔊 ACTION 1.B : PARADE AUDIO MULTIMÉDIA (Force le haut-parleur du Samsung A10 avec un vrai bip d'alarme numérique)
+            try {
+              if (_alertAudioPlayer.playing) {
+                await _alertAudioPlayer.stop();
+              }
+              await _alertAudioPlayer.setUrl('https://google.com');
+              await _alertAudioPlayer.play();
+            } catch (e) {
+              debugPrint("Hoquet haut-parleur : $e");
+            }
 
             // 🚀 ACTION 2 : L'écran de mission Flash surgit de force !
             Navigator.push(
@@ -70,8 +82,10 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               MaterialPageRoute(
                 builder: (context) => AlerteFlashVendeurScreen(
                   idAlerte: idAlerte,
-                  idVendeur: demandeurId, // On transmet l'ID du vrai courtier émetteur !
-                  nomMagasin: widget.nomMagasinLocal, // C'est la boutique réceptrice actuelle
+                  idVendeur:
+                      demandeurId, // On transmet l'ID du vrai courtier émetteur !
+                  nomMagasin: widget
+                      .nomMagasinLocal, // C'est la boutique réceptrice actuelle
                   audioUrl: audioUrl,
                 ),
               ),
@@ -82,7 +96,9 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
 
   @override
   void dispose() {
-    _radarSubscription?.cancel(); // 👈 3. Fermeture du robinet pour préserver la RAM du Samsung A10 !
+    _radarSubscription?.cancel();
+    _alertAudioPlayer
+        .dispose(); // 👈 Libère proprement les ressources audio en RAM !
     super.dispose();
   }
 
