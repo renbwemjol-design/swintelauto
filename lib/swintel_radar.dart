@@ -1,11 +1,11 @@
-import 'dart:async'; // 👈 1. Ajout de l'infrastructure asynchrone des Streams !
+import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.gov'; // 🛑 ATTENTION : Si cette ligne bug, supprime-la !
+import 'package:flutter/services.dart'; // 👈 Indispensable pour injecter les bips physiques
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
 import 'alerte_flash_vendeur.dart';
-import 'package:just_audio/just_audio.dart'; // 👈 Compagnon multimédia d'autorité !
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -23,9 +23,7 @@ class SwintelRadarGate extends StatefulWidget {
 
 class _SwintelRadarGateState extends State<SwintelRadarGate> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  StreamSubscription? _radarSubscription;
-  final AudioPlayer _alertAudioPlayer =
-      AudioPlayer(); // 👈 Casque de choc pour la sirène multimédia !
+  StreamSubscription? _radarSubscription; // 👈 Filet de sécurité asynchrone
 
   @override
   void initState() {
@@ -34,7 +32,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
   }
 
   void _allumerRadarDeFlotte() {
-    // 🧠 INFRASTRUCTURE DE FLUX : On écoute le Stream réel, infiniment plus robuste face aux latences de Douala !
+    // 🧠 INFRASTRUCTURE DE FLUX IMMUNE : Écoute le Stream réel des lignes 'en_attente'
     _radarSubscription = _supabase
         .from('Alertes')
         .stream(primaryKey: ['id'])
@@ -49,11 +47,11 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String demandeurId = alerte['demandeur_id'] ?? '';
           final String statutAlerte = alerte['statut_alerte'] ?? '';
 
-          // 🛡️ FILTRES ET SÉCURITÉS SÉMANTIQUES :
+          // 🛡️ SÉCURITÉS SÉMANTIQUES :
           if (statutAlerte != 'en_attente')
-            return; // Uniquement si l'alerte attend preneur !
+            return; // Uniquement si l'alerte attend preneur
           if (demandeurId == widget.idUtilisateur)
-            return; // Sécurité absolue anti-auto-vibration !
+            return; // Anti-auto-vibration
 
           if (mounted) {
             // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
@@ -64,15 +62,19 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-            // 🔊 ACTION 1.B : PARADE AUDIO MULTIMÉDIA (Force le haut-parleur du Samsung A10 avec un vrai bip d'alarme numérique)
+            // 🔊 ACTION 1.B : PARADE AUDIO MATÉRIELLE NATIVE (Zéro Internet - Insensible aux coupures)
             try {
-              if (_alertAudioPlayer.playing) {
-                await _alertAudioPlayer.stop();
-              }
-              await _alertAudioPlayer.setUrl('https://google.com');
-              await _alertAudioPlayer.play();
+              // On percute les canaux physiques d'autorité du système Android pour forcer les retours secs
+              await HapticFeedback.vibrate();
+              await SystemChannels.platform
+                  .invokeMethod('HapticFeedback.vibrate');
+
+              // On force le haut-parleur interne à biper en mode 'alert' (Niveau d'urgence max !)
+              await SystemSound.play(SystemSoundType.alert);
+              await Future.delayed(const Duration(milliseconds: 200));
+              await SystemSound.play(SystemSoundType.alert);
             } catch (e) {
-              debugPrint("Hoquet haut-parleur : $e");
+              debugPrint("Hoquet bip natif : $e");
             }
 
             // 🚀 ACTION 2 : L'écran de mission Flash surgit de force !
@@ -95,9 +97,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
 
   @override
   void dispose() {
-    _radarSubscription?.cancel();
-    _alertAudioPlayer
-        .dispose(); // 👈 Libère proprement les ressources audio en RAM !
+    _radarSubscription?.cancel(); // 👈 Fermeture hermétique du robinet
     super.dispose();
   }
 
