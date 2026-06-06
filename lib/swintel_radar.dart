@@ -1,6 +1,5 @@
 import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
 import 'package:flutter/material.dart';
-import 'package:flutter/services.gov'; // 🛑 ATTENTION : Si cette ligne bug, supprime-la !
 import 'package:flutter/services.dart'; // 👈 Indispensable pour injecter les bips physiques
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
