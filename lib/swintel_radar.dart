@@ -61,17 +61,21 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-            // 🔊 ACTION 1.B : PARADE AUDIO MATÉRIELLE NATIVE (Zéro Internet - Insensible aux coupures)
+            // 🔊 ACTION 1.B : PARADE AUDIO MATÉRIELLE NATIVE (Zéro Internet - Canal de Force Android)
             try {
-              // On percute les canaux physiques d'autorité du système Android pour forcer les retours secs
+              // 1. On percute la vibration haptique standard
               await HapticFeedback.vibrate();
               await SystemChannels.platform
                   .invokeMethod('HapticFeedback.vibrate');
 
-              // On force le haut-parleur interne à biper en mode 'alert' (Niveau d'urgence max !)
-              await SystemSound.play(SystemSoundType.alert);
-              await Future.delayed(const Duration(milliseconds: 200));
-              await SystemSound.play(SystemSoundType.alert);
+              // 2. ⚡ LA PARADE SUPRÊME : On simule un clic système lourd sur le canal de retour d'état d'urgence
+              for (int i = 0; i < 3; i++) {
+                await SystemChannels.platform.invokeMethod('SystemSound.play',
+                    'content://settings/system/notification_sound');
+                // En appelant directement l'URI interne du son de notification de base d'Android, on force la puce audio à s'ouvrir !
+                await SystemSound.play(SystemSoundType.alert);
+                await Future.delayed(const Duration(milliseconds: 250));
+              }
             } catch (e) {
               debugPrint("Hoquet bip natif : $e");
             }

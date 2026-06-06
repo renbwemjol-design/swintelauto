@@ -30,7 +30,16 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   @override
   void initState() {
     super.initState();
-    // Écouteur pour réinitialiser le bouton à la fin de la lecture audio
+
+    // 🔊 SIRENE DE PREMIER PLAN : Dès que l'écran rouge surgit, on force le bip système !
+    Future.delayed(Duration.zero, () async {
+      try {
+        await SystemSound.play(SystemSoundType.alert);
+        await Future.delayed(const Duration(milliseconds: 300));
+        await SystemSound.play(SystemSoundType.alert);
+      } catch (_) {}
+    });
+
     _audioPlayer.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed && mounted) {
         setState(() => _isPlaying = false);
