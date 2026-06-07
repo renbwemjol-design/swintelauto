@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 👈 AJOUTE CETTE LIGNE DE FORCE ICI !
+import 'package:flutter/services.dart'; // 👈 1. Importation matérielle pour les services système !
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -24,7 +24,10 @@ class AlerteFlashVendeurScreen extends StatefulWidget {
 
 class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _audioPlayer =
+      AudioPlayer(); // Pour la note vocale du client
+  final AudioPlayer _sirenePlayer =
+      AudioPlayer(); // 👈 2. Le nouveau haut-parleur dédié à la sirène !
   bool _isPlaying = false;
   bool _isProcessing = false;
 
@@ -32,15 +35,20 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   void initState() {
     super.initState();
 
-    // 🔊 SIRENE DE PREMIER PLAN : Dès que l'écran rouge surgit, on force le bip système !
+    // 🔊 SIRENE DE PREMIER PLAN MULTIMÉDIA : Forcé au démarrage pour briser le verrou Android
     Future.delayed(Duration.zero, () async {
       try {
-        await SystemSound.play(SystemSoundType.alert);
-        await Future.delayed(const Duration(milliseconds: 300));
-        await SystemSound.play(SystemSoundType.alert);
-      } catch (_) {}
+        // Chargement du bip d'alarme électronique officiel Google
+        await _sirenePlayer.setUrl('https://google.com');
+        await _sirenePlayer
+            .setVolume(1.0); // Forçage du volume matériel au maximum !
+        await _sirenePlayer.play();
+      } catch (e) {
+        debugPrint("Hoquet haut-parleur alerte : $e");
+      }
     });
 
+    // Écouteur pour réinitialiser le bouton à la fin de la lecture du vocal client
     _audioPlayer.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed && mounted) {
         setState(() => _isPlaying = false);
@@ -48,7 +56,7 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     });
   }
 
-  // 🎵 1. Moteur d'écoute accéléré (Pré-chargement pour contrer les lenteurs réseau)
+  // 🎵 Moteur d'écoute accéléré (Pré-chargement pour contrer les lenteurs réseau)
   Future<void> _gererLecture() async {
     if (widget.audioUrl.isEmpty) return;
     try {
@@ -58,7 +66,7 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
       } else {
         setState(() => _isPlaying = true);
 
-        // 🎯 ANTIDOTE LATENCE : On ordonne au lecteur de mettre en cache agressivement l'audio
+        // 🎯 ANTIDOTE LATENCE : Mise en cache agressive de l'audio client
         if (_audioPlayer.duration == null) {
           await _audioPlayer.setUrl(widget.audioUrl, preload: true);
         }
@@ -71,23 +79,24 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     }
   }
 
-  // 🟢 2. Action positive : "J'AI LA PIÈCE" (+10 pts) (VERSION VERROUILLÉE ET RAPIDE)
-  // 🟢 ACTION POSITIVE : "J'AI LA PIÈCE" (VRAI ALIGNEMENT DES RÔLES EN BASE DE DONNÉES)
+  // 🟢 ACTION POSITIVE : "J'AI LA PIÈCE" (+10 pts) (RÔLES STABLES EN BASE)
   Future<void> _repondreOui() async {
     setState(() => _isProcessing = true);
     try {
-      // 🧠 COUTURE TEMPS RÉEL : On écrit d'abord la signature pour libérer l'émetteur instantanément
+      // 🔊 EXTINCTION DE FORCE : On coupe immédiatement la sirène d'alarme !
+      await _sirenePlayer.stop();
+
+      // Couture temps réel pour libérer l'émetteur instantanément
       await _supabase.from('Alertes').update({
         'statut_alerte':
             'reponse_${widget.nomMagasin}', // Exemple: reponse_ORNY AUTO
       }).eq('id', widget.idAlerte);
 
-      // 🏆 DISTRIBUTION DES POINTS : Le courtier_id reçoit l'ID de l'émetteur et le nom reçoit la cible
+      // Distribution chirurgicale des points dans la table de suivi
       await _supabase.from('BonusCourtage').insert({
-        'courtier_id': widget
-            .idVendeur, // 👈 C'est l'idUtilisateur/demandeurId transmis (Le vrai courtier !)
-        'magasin_cible_nom': widget
-            .nomMagasin, // 👈 C'est la boutique qui clique (ORNY AUTO ou MAMBENI AUTO)
+        'courtier_id': widget.idVendeur, // Le vrai gérant émetteur
+        'magasin_cible_nom':
+            widget.nomMagasin, // La boutique réceptrice qui clique
         'points_gagnes': 10,
       });
 
@@ -104,15 +113,18 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     }
   }
 
-  // 🔴 3. Action négative : "JE N'AI PAS" (-5 pts malus)
+  // 🔴 ACTION NÉGATIVE : "JE N'AI PAS" (-5 pts malus)
   Future<void> _repondreNon() async {
     setState(() => _isProcessing = true);
     try {
+      // 🔊 EXTINCTION DE FORCE : On coupe immédiatement la sirène d'alarme !
+      await _sirenePlayer.stop();
+
       // Écriture du malus de fiabilité pour refus de collaboration
       await _supabase.from('BonusCourtage').insert({
         'courtier_id': widget.idVendeur,
         'magasin_cible_nom': widget.nomMagasin,
-        'points_gagnes': -5, // -5 points de malus
+        'points_gagnes': -5,
       });
 
       if (mounted) {
@@ -121,8 +133,10 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
         Navigator.pop(context); // Ferme l'écran instantanément
       }
     } catch (e) {
-      setState(() => _isProcessing = false);
-      _afficherMessage("Erreur : $e", Colors.red);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _afficherMessage("Erreur : $e", Colors.red);
+      }
     }
   }
 
@@ -140,6 +154,8 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _sirenePlayer
+        .dispose(); // 👈 3. Libération étanche du haut-parleur de sirène !
     super.dispose();
   }
 
@@ -148,6 +164,7 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Scaffold(
+      backgroundColor: Colors.black87, // Fond sombre d'urgence
       appBar: AppBar(
         title: Text(isEnglish
             ? '🔥 SWINTEL - FLASH MISSION'
@@ -155,13 +172,13 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
         backgroundColor: Colors.redAccent,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close,
-              color: Colors.black), // Croix d'autorité pour balayer
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () async {
+            await _sirenePlayer.stop(); // Sécurité au balayage par la croix
+            if (mounted) Navigator.pop(context);
+          },
         ),
       ),
-      backgroundColor:
-          Colors.black87, // Fond sombre pour accentuer le mode d'urgence
       body: _isProcessing
           ? const Center(child: CircularProgressIndicator(color: Colors.amber))
           : Padding(
@@ -170,7 +187,6 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // En-tête d'alerte contextuel
                   Card(
                     color: Colors.redAccent.withOpacity(0.2),
                     child: Padding(
