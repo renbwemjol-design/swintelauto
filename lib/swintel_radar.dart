@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
 import 'alerte_flash_vendeur.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
+import 'main.dart'; // 👈 🎯 INTERCONNEXION AJOUTÉE ICI !
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -61,35 +63,46 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-            // 🔊 ACTION 1.B : PARADE AUDIO MATÉRIELLE NATIVE (Zéro Internet - Canal de Force Android)
+            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Zéro Internet, Force Max)
             try {
-              // 1. On percute la vibration haptique standard
-              await HapticFeedback.vibrate();
-              await SystemChannels.platform
-                  .invokeMethod('HapticFeedback.vibrate');
+              // On crée la notification matérielle qui va tirer sur notre canal d'autorité
+              const AndroidNotificationDetails androidNotificationDetails =
+                  AndroidNotificationDetails(
+                'swintel_urgent_channel', // 👈 Doit correspondre EXACTEMENT à l'ID du main.dart !
+                '🚨 SWINTEL - ALERTES CRUCIALES',
+                channelDescription: 'Canal d\'urgence prioritaire',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+                sound: RawResourceAndroidNotificationSound(
+                    'sirene'), // 👈 Joue le fichier local !
+              );
 
-              // 2. ⚡ LA PARADE SUPRÊME : On simule un clic système lourd sur le canal de retour d'état d'urgence
-              for (int i = 0; i < 3; i++) {
-                await SystemChannels.platform.invokeMethod('SystemSound.play',
-                    'content://settings/system/notification_sound');
-                // En appelant directement l'URI interne du son de notification de base d'Android, on force la puce audio à s'ouvrir !
-                await SystemSound.play(SystemSoundType.alert);
-                await Future.delayed(const Duration(milliseconds: 250));
-              }
+              const NotificationDetails notificationDetails =
+                  NotificationDetails(
+                android: androidNotificationDetails,
+              );
+
+              // On ordonne au plugin de faire hurler le haut-parleur physique
+              await flutterLocalNotificationsPlugin.show(
+                idAlerte
+                    .hashCode, // Génère un ID de notification unique basé sur l'UUID de l'alerte
+                '🔥 MISSION FLASH SWINTEL !',
+                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
+                notificationDetails,
+              );
             } catch (e) {
-              debugPrint("Hoquet bip natif : $e");
+              debugPrint("Hoquet sirène Facebook : $e");
             }
 
-            // 🚀 ACTION 2 : L'écran de mission Flash surgit de force !
+            // 🚀 ACTION 2 : L'écran de mission Flash surgit de force sur les pixels !
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => AlerteFlashVendeurScreen(
                   idAlerte: idAlerte,
-                  idVendeur:
-                      demandeurId, // On transmet l'ID du vrai courtier émetteur !
-                  nomMagasin: widget
-                      .nomMagasinLocal, // C'est la boutique réceptrice actuelle
+                  idVendeur: demandeurId,
+                  nomMagasin: widget.nomMagasinLocal,
                   audioUrl: audioUrl,
                 ),
               ),
