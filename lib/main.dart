@@ -30,29 +30,28 @@ Future<void> main() async {
   );
   // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
   const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings(
-          '@mipmap/ic_launcher'); // Utilise l'icône de base de l'APK
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
 
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  // 🎯 RECTIFICATION SYNTAXE 2026 : Utilisation du paramètre nommé
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+  );
 
-  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK" (Le cœur du vacarme)
+  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK"
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'swintel_urgent_channel', // ID unique du canal
-    '🚨 SWINTEL - ALERTES CRUCIALES', // Nom affiché dans les paramètres du téléphone
-    description:
-        'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
-    importance: Importance.max, // 👈 FORCE LE HAUT-PARLEUR DU SAMSUNG A10
+    'swintel_urgent_channel',
+    '🚨 SWINTEL - ALERTES CRUCIALES',
+    description: 'Canal d\'urgence prioritaire pour les missions flash',
+    importance: Importance.max,
     playSound: true,
-    sound: RawResourceAndroidNotificationSound(
-        'sirene'), // 👈 ATTACHE NOTRE FICHIER LOCAL !
+    sound: RawResourceAndroidNotificationSound('sirene'),
     enableVibration: true,
   );
 
-  // On injecte officiellement le canal dans le système d'exploitation Android
   final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
@@ -61,8 +60,8 @@ Future<void> main() async {
     await androidImplementation.createNotificationChannel(channel);
   }
 
-  runApp(
-      const SwintelApp()); // 👈 Conserve l'appel de ton application existante
+  // 🎯 RECTIFICATION NOM : Remplace 'SwintelApp' par 'MyApp' (ou le nom exact de ton application d'origine)
+  runApp(const MyApp());
 }
 
 //

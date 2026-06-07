@@ -64,18 +64,17 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             }
 
             // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Zéro Internet, Force Max)
+            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Syntaxe Nommée)
             try {
-              // On crée la notification matérielle qui va tirer sur notre canal d'autorité
               const AndroidNotificationDetails androidNotificationDetails =
                   AndroidNotificationDetails(
-                'swintel_urgent_channel', // 👈 Doit correspondre EXACTEMENT à l'ID du main.dart !
+                'swintel_urgent_channel',
                 '🚨 SWINTEL - ALERTES CRUCIALES',
                 channelDescription: 'Canal d\'urgence prioritaire',
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
-                sound: RawResourceAndroidNotificationSound(
-                    'sirene'), // 👈 Joue le fichier local !
+                sound: RawResourceAndroidNotificationSound('sirene'),
               );
 
               const NotificationDetails notificationDetails =
@@ -83,13 +82,12 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 android: androidNotificationDetails,
               );
 
-              // On ordonne au plugin de faire hurler le haut-parleur physique
+              // 🎯 RECTIFICATION SYNTAXE 2026 : On nomme explicitement chaque argument !
               await flutterLocalNotificationsPlugin.show(
-                idAlerte
-                    .hashCode, // Génère un ID de notification unique basé sur l'UUID de l'alerte
-                '🔥 MISSION FLASH SWINTEL !',
-                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
-                notificationDetails,
+                idAlerte.hashCode, // ID unique de la notification
+                '🔥 MISSION FLASH SWINTEL !', // Titre
+                'Un gérant cherche une pièce ! Touchez pour ouvrir.', // Corps du message
+                notificationDetails, // Paramètres matériels
               );
             } catch (e) {
               debugPrint("Hoquet sirène Facebook : $e");
