@@ -35,14 +35,19 @@ class _AlerteFlashVendeurScreenState extends State<AlerteFlashVendeurScreen> {
   void initState() {
     super.initState();
 
-    // 🔊 SIRENE DE PREMIER PLAN MULTIMÉDIA : Forcé au démarrage pour briser le verrou Android
+    // 🔊 SIRENE DE PREMIER PLAN MULTIMÉDIA : Version locale d'autorité Android (Zéro Internet)
     Future.delayed(Duration.zero, () async {
       try {
-        // Chargement du bip d'alarme électronique officiel Google
-        await _sirenePlayer.setUrl('https://google.com');
-        await _sirenePlayer
-            .setVolume(1.0); // Forçage du volume matériel au maximum !
-        await _sirenePlayer.play();
+        // On percute les canaux physiques d'autorité du système Android pour forcer deux retours secs
+        await HapticFeedback.vibrate();
+        await SystemChannels.platform.invokeMethod('HapticFeedback.vibrate');
+
+        // On force le haut-parleur interne à biper en mode 'alert' (Niveau d'urgence max !)
+        for (int i = 0; i < 4; i++) {
+          await SystemSound.play(SystemSoundType
+              .alert); // 👈 BIP NATIVE D'URGENCENCE LOGÉ DANS LE SAMSUNG !
+          await Future.delayed(const Duration(milliseconds: 250));
+        }
       } catch (e) {
         debugPrint("Hoquet haut-parleur alerte : $e");
       }
