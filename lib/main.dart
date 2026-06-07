@@ -11,21 +11,61 @@ import 'swintel_radar.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 👈 Pour lire la mémoire physique
 import 'ecran_enregistrement.dart'; // 👈 Pour appeler l'écran d'activation
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
 
 // main copy 2, tourne jusqu'à l'enregisrement des coord GPS ok
 
+// 🧠 1. DÉCLARATION DU CAPITAINE DES CANAUX AUDIO (À placer obligatoirement en dehors de la fonction main)
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 Future<void> main() async {
-  // Cette ligne est OBLIGATOIRE pour éviter un écran noir
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 🎯 CONSERVE ICI TON BLOC EXISTANT ENTIER :
   await Supabase.initialize(
     url: 'https://knvujljgzhnwqcoukuni.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4',
   );
-  runApp(const ReseauPiecesApp());
+  // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings(
+          '@mipmap/ic_launcher'); // Utilise l'icône de base de l'APK
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK" (Le cœur du vacarme)
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'swintel_urgent_channel', // ID unique du canal
+    '🚨 SWINTEL - ALERTES CRUCIALES', // Nom affiché dans les paramètres du téléphone
+    description:
+        'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
+    importance: Importance.max, // 👈 FORCE LE HAUT-PARLEUR DU SAMSUNG A10
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound(
+        'sirene'), // 👈 ATTACHE NOTRE FICHIER LOCAL !
+    enableVibration: true,
+  );
+
+  // On injecte officiellement le canal dans le système d'exploitation Android
+  final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+      flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  if (androidImplementation != null) {
+    await androidImplementation.createNotificationChannel(channel);
+  }
+
+  runApp(
+      const SwintelApp()); // 👈 Conserve l'appel de ton application existante
 }
 
+//
 class ReseauPiecesApp extends StatelessWidget {
   const ReseauPiecesApp({super.key});
 
