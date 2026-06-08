@@ -42,6 +42,8 @@ flutter {
 }
 
 // 🎯 MICRO-SOUDURE 3 : Injection de la bibliothèque de traduction physique au cœur de Gradle
+// 🎯 MISE À NIVEAU VERSION 2026 : Le traducteur passe en version 2.1.4 d'autorité !
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
