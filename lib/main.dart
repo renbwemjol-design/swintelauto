@@ -36,10 +36,11 @@ Future<void> main() async {
     android: initializationSettingsAndroid,
   );
 
-  // 🎯 RECTIFICATION SYNTAXE 2026 : Passage propre sans argument positionnel orphelin
+  // 🎯 RECTIFICATION SYNTAXE EXACTE : L'argument reste positionnel brut pour initialize !
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
   );
+
 
   // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK" (Zéro Internet)
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
