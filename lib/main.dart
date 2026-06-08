@@ -28,13 +28,13 @@ Future<void> main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4',
   );
 
-   // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
+    // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  // 🎯 RECTIFICATION INFRASTRUCTURE : Initialisation directe et simplifiée sans objet intermédiaire encombrant
+  // 🎯 RECTIFICATION PARFAITE : Passage via le paramètre nommé requis par le compilateur
   await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(
+    initializationSettings: const InitializationSettings(
       android: initializationSettingsAndroid,
     ),
   );
@@ -49,7 +49,6 @@ Future<void> main() async {
     sound: RawResourceAndroidNotificationSound('sirene'), // 👈 Notre fichier local sirene.ogg
     enableVibration: true,
   );
-
 
   final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
