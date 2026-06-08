@@ -1,12 +1,14 @@
 import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
+import 'dart:math'
+    as math; // 👈 1. L'IMPORTATION GÉOSPATIALE CORRIGÉE ET POSITIONNÉE ICI !
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 👈 Indispensable pour injecter les bips physiques
+import 'package:flutter/services.dart'; // Indispensable pour injecter les bips physiques
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
 import 'alerte_flash_vendeur.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
-import 'main.dart'; // 👈 Crucial pour capter l'instance globale du plugin !
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Le gérant des canaux
+import 'main.dart'; // Crucial pour l'instance du plugin
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -32,8 +34,26 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
     _allumerRadarDeFlotte();
   }
 
+  // 🧠 FONCTION MATHÉMATIQUE DE HAVERSINE : Calcule la distance exacte en kilomètres entre deux points GPS
+  double _calculerDistanceHaversine(
+      double lat1, double lng1, double lat2, double lng2) {
+    const double rayonTerre = 6371.0; // Rayon moyen de la Terre en kilomètres
+
+    double dLat = (lat2 - lat1) * math.pi / 180.0;
+    double dLng = (lng2 - lng1) * math.pi / 180.0;
+
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180.0) *
+            math.cos(lat2 * math.pi / 180.0) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return rayonTerre * c; // Retourne la distance en kilomètres
+  }
+
   void _allumerRadarDeFlotte() {
-    // 🧠 INFRASTRUCTURE DE FLUX IMMUNE : Écoute le Stream réel des lignes 'en_attente'
+    // 🧠 INFRASTRUCTURE DE FLUX SÉLECTIF : Écoute le Stream réel des alertes en attente
     _radarSubscription = _supabase
         .from('Alertes')
         .stream(primaryKey: ['id'])
@@ -41,19 +61,52 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
         .listen((List<Map<String, dynamic>> alertes) async {
           if (alertes.isEmpty) return;
 
-          // On attrape instantanément la toute dernière alerte publiée sur la grille SQL
           final alerte = alertes.first;
           final dynamic idAlerte = alerte['id'];
           final String audioUrl = alerte['audio_url'] ?? '';
           final String demandeurId = alerte['demandeur_id'] ?? '';
           final String statutAlerte = alerte['statut_alerte'] ?? '';
 
-          // 🛡️ SÉCURITÉS SÉMANTIQUES :
-          if (statutAlerte != 'en_attente') return; // Uniquement si l'alerte attend preneur
-          if (demandeurId == widget.idUtilisateur) return; // Anti-auto-vibration
+          // 🎯 NOUVELLES COUTURES SÉMANTIQUES : Extraction des filtres de l'alerte
+          final String marqueRecherche = alerte['marque_concernee'] ?? '';
+          final String pieceRecherche = alerte['piece_concernee'] ?? '';
 
+          // Coordonnées GPS de l'émetteur G1 (à extraire de la table ou simulées)
+          final double latG1 = alerte['lat_emetteur'] ?? 4.0510;
+          final double lngG1 = alerte['lng_emetteur'] ?? 9.7679;
+
+          if (statutAlerte != 'en_attente') return;
+          if (demandeurId == widget.idUtilisateur) return;
+
+          // ----------------------------------------------------------------------
+          // 🏆 FILTRE 1 : LE FILTRE SÉMANTIQUE DU STOCK LOCAL
+          // ----------------------------------------------------------------------
+          bool estSpecialisteMarque = widget.nomMagasinLocal
+                  .toLowerCase()
+                  .contains(marqueRecherche.toLowerCase()) ||
+              marqueRecherche.isEmpty;
+
+          if (!estSpecialisteMarque) {
+            return; // 🛑 Le magasin actuel n'a pas cette marque -> Le téléphone reste muet !
+          }
+
+          // ----------------------------------------------------------------------
+          // 🏆 FILTRE 2 : LE FILTRE SPATIAL (La distance "raisonnable" de 5 KM)
+          // ----------------------------------------------------------------------
+          double latMagasinActuel = 4.0520;
+          double lngMagasinActuel = 9.7685;
+
+          double distanceDuDeal = _calculerDistanceHaversine(
+              latG1, lngG1, latMagasinActuel, lngMagasinActuel);
+
+          if (distanceDuDeal > 5.0) {
+            return; // 🛑 Le magasin est trop loin -> On coupe le signal !
+          }
+          // ----------------------------------------------------------------------
+          // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET SURGIT !
+          // ----------------------------------------------------------------------
           if (mounted) {
-            // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
+            // 📳 ACTION 1.A : RE-COUTURE DES ONDES DE CHOC DE VIBRATION (Intensité 255)
             if (await Vibration.hasVibrator() ?? false) {
               Vibration.vibrate(
                 pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
@@ -74,16 +127,18 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 sound: RawResourceAndroidNotificationSound('sirene'),
               );
 
-              const NotificationDetails notificationDetails = NotificationDetails(
+              const NotificationDetails notificationDetails =
+                  NotificationDetails(
                 android: androidNotificationDetails,
               );
 
-               // 🎯 RECTIFICATION PARFAITE 2026 : Chaque argument est nommé sans exception !
+              // Chaque paramètre a son étiquette officielle réglementaire
               await flutterLocalNotificationsPlugin.show(
-                id: idAlerte.hashCode, // 👈 L'identifiant unique de notification
-                title: '🔥 MISSION FLASH SWINTEL !', // 👈 AJOUTE L'ÉTIQUETTE TITLE: ICI !
-                body: 'Un gérant cherche une pièce ! Touchez pour ouvrir.', // 👈 AJOUTE L'ÉTIQUETTE BODY: ICI !
-                notificationDetails: notificationDetails, // Le canal d'urgence
+                id: idAlerte.hashCode,
+                title: '🔥 MISSION FLASH CRUCIALE !',
+                body:
+                    'Une pièce compatible ($marqueRecherche) est recherchée à ${distanceDuDeal.toStringAsFixed(1)} km !',
+                notificationDetails: notificationDetails,
               );
             } catch (e) {
               debugPrint("Hoquet sirène Facebook : $e");
@@ -107,7 +162,8 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
 
   @override
   void dispose() {
-    _radarSubscription?.cancel(); // 👈 Fermeture hermétique du robinet pour préserver la RAM
+    _radarSubscription
+        ?.cancel(); // 👈 Fermeture hermétique du robinet pour préserver la RAM
     super.dispose();
   }
 
