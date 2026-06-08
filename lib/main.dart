@@ -28,30 +28,28 @@ Future<void> main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4',
   );
 
-  // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
+   // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
-
-  // 🎯 RECTIFICATION SYNTAXE EXACTE : L'argument reste positionnel brut pour initialize !
+  // 🎯 RECTIFICATION INFRASTRUCTURE : Initialisation directe et simplifiée sans objet intermédiaire encombrant
   await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
+    const InitializationSettings(
+      android: initializationSettingsAndroid,
+    ),
   );
 
-
-  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK" (Zéro Internet)
+  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK"
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'swintel_urgent_channel',
     '🚨 SWINTEL - ALERTES CRUCIALES',
     description: 'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
-    importance: Importance.max, // 👈 FORCE LE HAUT-PARLEUR DU SAMSUNG A10
+    importance: Importance.max,
     playSound: true,
-    sound: RawResourceAndroidNotificationSound('sirene'), // 👈 ATTACHE NOTRE FICHIER LOCAL !
+    sound: RawResourceAndroidNotificationSound('sirene'), // 👈 Notre fichier local sirene.ogg
     enableVibration: true,
   );
+
 
   final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
