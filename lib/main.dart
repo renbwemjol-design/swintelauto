@@ -1,3 +1,4 @@
+import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,21 +14,20 @@ import 'ecran_enregistrement.dart'; // 👈 Pour appeler l'écran d'activation
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
 
-// main copy 2, tourne jusqu'à l'enregisrement des coord GPS ok
-
-// 🧠 1. DÉCLARATION DU CAPITAINE DES CANAUX AUDIO (À placer obligatoirement en dehors de la fonction main)
+  // 🧠 1. DÉCLARATION DU CAPITAINE DES CANAUX AUDIO
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🎯 CONSERVE ICI TON BLOC EXISTANT ENTIER :
+  // 🎯 INITIALISATION SUPABASE CLOUD SÉCURISÉE
   await Supabase.initialize(
     url: 'https://knvujljgzhnwqcoukuni.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4',
   );
+
   // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -36,19 +36,19 @@ Future<void> main() async {
     android: initializationSettingsAndroid,
   );
 
-  // 🎯 RECTIFICATION SYNTAXE 2026 : Utilisation du paramètre nommé
+  // 🎯 RECTIFICATION SYNTAXE 2026 : Passage propre sans argument positionnel orphelin
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
   );
 
-  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK"
+  // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK" (Zéro Internet)
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'swintel_urgent_channel',
     '🚨 SWINTEL - ALERTES CRUCIALES',
-    description: 'Canal d\'urgence prioritaire pour les missions flash',
-    importance: Importance.max,
+    description: 'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
+    importance: Importance.max, // 👈 FORCE LE HAUT-PARLEUR DU SAMSUNG A10
     playSound: true,
-    sound: RawResourceAndroidNotificationSound('sirene'),
+    sound: RawResourceAndroidNotificationSound('sirene'), // 👈 ATTACHE NOTRE FICHIER LOCAL !
     enableVibration: true,
   );
 
@@ -60,11 +60,10 @@ Future<void> main() async {
     await androidImplementation.createNotificationChannel(channel);
   }
 
-  // 🎯 RECTIFICATION NOM : Remplace 'SwintelApp' par 'MyApp' (ou le nom exact de ton application d'origine)
-  runApp(const MyApp());
+  // 🎯 ALIGNEMENT DU NOM DE CLASSE : Appelle directement ton vrai widget principal du bas !
+  runApp(const ReseauPiecesApp());
 }
 
-//
 class ReseauPiecesApp extends StatelessWidget {
   const ReseauPiecesApp({super.key});
 
@@ -74,23 +73,18 @@ class ReseauPiecesApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Réseau Pièces Afrique',
       theme: ThemeData(primarySwatch: Colors.orange, useMaterial3: true),
-
-      // 🎯 SÉCURITÉ LINGUISTIQUE DU GOUDRON : Conserve tes deux langues et libère les boutons
       supportedLocales: const [
-        Locale('fr', ''), // 👈 Active le Français
-        Locale('en', ''), // 👈 Active l'Anglais
+        Locale('fr', ''),
+        Locale('en', ''),
       ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-
-      // 🧠 L'AIGUILLAGE UNIVERSEL ET ASYNCHRONE DE SWINTEL
       home: FutureBuilder<SharedPreferences>(
         future: SharedPreferences.getInstance(),
         builder: (context, snapshot) {
-          // Pendant que la puce mémoire du Samsung A10 se réveille, on affiche une petite roue
           if (!snapshot.hasData) {
             return const Scaffold(
                 body: Center(
@@ -102,16 +96,12 @@ class ReseauPiecesApp extends StatelessWidget {
           final String nomBoutique =
               prefs.getString('nom_magasin_local') ?? 'Magasin';
 
-          // 🚦 LA DÉCISION DU RADAR :
           if (telephoneLocal != null && telephoneLocal.isNotEmpty) {
-            // 📡 On allume ses radars en arrière-plan d'autorité en passant le numéro ET le vrai nom !
             return SwintelRadarGate(
               idUtilisateur: telephoneLocal,
-              nomMagasinLocal:
-                  nomBoutique, // 👈 ENVOIE LA SIGNATURE DYNAMIQUE DE LA BOUTIQUE !
+              nomMagasinLocal: nomBoutique,
             );
           } else {
-            // Si c'est la toute première fois, on fait surgir l'écran d'activation unique
             return const EcranEnregistrementScreen();
           }
         },
@@ -263,19 +253,27 @@ class _FormulaireMagasinState extends State<FormulaireMagasin> {
           child: const Text('Réseau Pièces'),
         ),
         backgroundColor: Colors.orange,
-        // C'est ici qu'on range le bouton de diffusion pour libérer l'écran !
         actions: [
           IconButton(
             icon: const Icon(Icons.podcasts, color: Colors.white, size: 28),
             tooltip: 'Lancer une alerte',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const EcranCreerAlerte(idGerant: "G1_PILOTE"),
-                ),
-              );
+            onPressed: () async {
+              // 🧠 SÉCURITÉ IDENTITÉ : On va lire le vrai numéro en RAM avant de propulser l'écran
+              final SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
+              final String telephoneActuel =
+                  prefs.getString('telephone_local') ?? 'G1_PILOTE';
+
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EcranCreerAlerte(
+                        idGerant:
+                            telephoneActuel), // 👈 BRANCHÉ SUR LA RAM D'AUTORITÉ !
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 10),
