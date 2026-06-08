@@ -9,6 +9,8 @@ android {
     compileSdk = 36
 
     compileOptions {
+        // 🎯 MICRO-SOUDURE 1 : Activation du traducteur de bibliothèque multimédia Java 8+
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -19,10 +21,13 @@ android {
 
     defaultConfig {
         applicationId = "com.example.reseau_auto"
-        minSdk = flutter.minSdkVersion // 👈 FIXÉ DIRECTEMENT À 23 POUR LE MICRO MODERNE
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // 🎯 MICRO-SOUDURE 2 : Activation du MultiDex pour les architectures lourdes 2026
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -34,4 +39,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// 🎯 MICRO-SOUDURE 3 : Injection de la bibliothèque de traduction physique au cœur de Gradle
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
