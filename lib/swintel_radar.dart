@@ -6,7 +6,7 @@ import 'package:vibration/vibration.dart';
 import 'dashboard.dart';
 import 'alerte_flash_vendeur.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
-import 'main.dart'; // 👈 🎯 INTERCONNEXION AJOUTÉE ICI !
+import 'main.dart'; // 👈 Crucial pour capter l'instance globale du plugin !
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -49,10 +49,8 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String statutAlerte = alerte['statut_alerte'] ?? '';
 
           // 🛡️ SÉCURITÉS SÉMANTIQUES :
-          if (statutAlerte != 'en_attente')
-            return; // Uniquement si l'alerte attend preneur
-          if (demandeurId == widget.idUtilisateur)
-            return; // Anti-auto-vibration
+          if (statutAlerte != 'en_attente') return; // Uniquement si l'alerte attend preneur
+          if (demandeurId == widget.idUtilisateur) return; // Anti-auto-vibration
 
           if (mounted) {
             // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
@@ -63,8 +61,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Zéro Internet, Force Max)
-            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Syntaxe Nommée)
+            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Arguments 100% Nommés)
             try {
               const AndroidNotificationDetails androidNotificationDetails =
                   AndroidNotificationDetails(
@@ -77,17 +74,16 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 sound: RawResourceAndroidNotificationSound('sirene'),
               );
 
-              const NotificationDetails notificationDetails =
-                  NotificationDetails(
+              const NotificationDetails notificationDetails = NotificationDetails(
                 android: androidNotificationDetails,
               );
 
-              // 🎯 RECTIFICATION SYNTAXE 2026 : On nomme explicitement chaque argument !
+              // 🎯 RECTIFICATION PARFAITE 2026 : Chaque paramètre a son étiquette officielle obligatoirement !
               await flutterLocalNotificationsPlugin.show(
-                idAlerte.hashCode, // ID unique de la notification
-                '🔥 MISSION FLASH SWINTEL !', // Titre
-                'Un gérant cherche une pièce ! Touchez pour ouvrir.', // Corps du message
-                notificationDetails, // Paramètres matériels
+                idAlerte.hashCode, // L'ID brut int reste en premier
+                '🔥 MISSION FLASH SWINTEL !',
+                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
+                notificationDetails: notificationDetails, // 👈 PARAMÈTRE ÉTIQUETÉ ICI !
               );
             } catch (e) {
               debugPrint("Hoquet sirène Facebook : $e");
@@ -111,7 +107,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
 
   @override
   void dispose() {
-    _radarSubscription?.cancel(); // 👈 Fermeture hermétique du robinet
+    _radarSubscription?.cancel(); // 👈 Fermeture hermétique du robinet pour préserver la RAM
     super.dispose();
   }
 
