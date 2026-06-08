@@ -78,12 +78,12 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 android: androidNotificationDetails,
               );
 
-              // 🎯 RECTIFICATION PARFAITE 2026 : Chaque paramètre a son étiquette officielle obligatoirement !
+               // 🎯 RECTIFICATION PARFAITE 2026 : Chaque argument est nommé sans exception !
               await flutterLocalNotificationsPlugin.show(
-                idAlerte.hashCode, // L'ID brut int reste en premier
-                '🔥 MISSION FLASH SWINTEL !',
-                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
-                notificationDetails: notificationDetails, // 👈 PARAMÈTRE ÉTIQUETÉ ICI !
+                id: idAlerte.hashCode, // 👈 L'identifiant unique de notification
+                title: '🔥 MISSION FLASH SWINTEL !', // 👈 AJOUTE L'ÉTIQUETTE TITLE: ICI !
+                body: 'Un gérant cherche une pièce ! Touchez pour ouvrir.', // 👈 AJOUTE L'ÉTIQUETTE BODY: ICI !
+                notificationDetails: notificationDetails, // Le canal d'urgence
               );
             } catch (e) {
               debugPrint("Hoquet sirène Facebook : $e");
