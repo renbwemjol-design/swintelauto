@@ -14,7 +14,7 @@ import 'ecran_enregistrement.dart'; // 👈 Pour appeler l'écran d'activation
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 👈 Le gestionnaire de canaux d'élite !
 
-  // 🧠 1. DÉCLARATION DU CAPITAINE DES CANAUX AUDIO
+// 🧠 1. DÉCLARATION DU CAPITAINE DES CANAUX AUDIO
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -28,28 +28,45 @@ Future<void> main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4',
   );
 
-   // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
+  // 🧠 2. CONFIGURATION DES DROITS ET PARAMÈTRES POUR ANDROID
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
   // 🎯 RECTIFICATION RADICALE : On contourne l'initialisation complexe. On crée l'objet directement
   // dans le paramètre requis pour briser le blocus du compilateur !
-  await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(
-      android: initializationSettingsAndroid,
-    ),
-  );
+  //await flutterLocalNotificationsPlugin.initialize(
+  //const InitializationSettings(
+  //android: initializationSettingsAndroid,
+  //),
+  //);
 
   // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK"
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'swintel_urgent_channel',
     '🚨 SWINTEL - ALERTES CRUCIALES',
-    description: 'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
+    description:
+        'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
     importance: Importance.max,
     playSound: true,
-    sound: RawResourceAndroidNotificationSound('sirene'), // Notre fichier local sirene.ogg
+    sound: RawResourceAndroidNotificationSound(
+        'sirene'), // Notre fichier local sirene.ogg
     enableVibration: true,
   );
+
+  final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+      flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+    // 🎯 VERROU SÉCURITÉ ANDROID MODERNE : Demande de force l'autorisation d'émettre des sons et pop-ups !
+  if (androidImplementation != null) {
+    await androidImplementation.createNotificationChannel(channel);
+    // Demande la permission physique à l'utilisateur sur le A10, A15 et Tecno
+    await androidImplementation.requestNotificationsPermission();
+  }
+
+  // 🎯 LA DÉLIVRANCE : On relance l'application d'origine d'autorité !
+  runApp(const ReseauPiecesApp());
+}
 
 class ReseauPiecesApp extends StatelessWidget {
   const ReseauPiecesApp({super.key});

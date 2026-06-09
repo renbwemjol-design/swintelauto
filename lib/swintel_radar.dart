@@ -114,32 +114,31 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Arguments 100% Nommés)
+             // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Vérification Syntaxe)
             try {
               const AndroidNotificationDetails androidNotificationDetails =
                   AndroidNotificationDetails(
-                'swintel_urgent_channel',
+                'swintel_urgent_channel', // ID du canal du main.dart
                 '🚨 SWINTEL - ALERTES CRUCIALES',
                 channelDescription: 'Canal d\'urgence prioritaire',
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
-                sound: RawResourceAndroidNotificationSound('sirene'),
+                sound: RawResourceAndroidNotificationSound('sirene'), // Cible sirene.ogg local
               );
 
-              const NotificationDetails notificationDetails =
-                  NotificationDetails(
+              const NotificationDetails notificationDetails = NotificationDetails(
                 android: androidNotificationDetails,
               );
 
-              // Chaque paramètre a son étiquette officielle réglementaire
+              // 🎯 APPEL DE FORCE : Chaque argument porte son étiquette réglementaire
               await flutterLocalNotificationsPlugin.show(
-                id: idAlerte.hashCode,
-                title: '🔥 MISSION FLASH CRUCIALE !',
-                body:
-                    'Une pièce compatible ($marqueRecherche) est recherchée à ${distanceDuDeal.toStringAsFixed(1)} km !',
+                idAlerte.hashCode,
+                '🔥 MISSION FLASH SWINTEL !',
+                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
                 notificationDetails: notificationDetails,
               );
+              print("📡 Signal sonore propulsé au canal Android !");
             } catch (e) {
               debugPrint("Hoquet sirène Facebook : $e");
             }
