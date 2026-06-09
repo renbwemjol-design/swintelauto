@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:io' as FileIO;
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart'; // 👈 1. IMPORTATION GÉOSPATIALE INTÉGRÉE D'AUTORITÉ !
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -87,6 +88,7 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
     }
   }
 
+  // 🎯 RE-COUTURE INTÉGRALE DE LA PROPULSION AVEC CAPTURE GPS RÉELLE DE G1
   Future<void> _propulserAlerte() async {
     if (_audioBytes == null || _audioBytes!.isEmpty) {
       _afficherMessage(
@@ -97,6 +99,19 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
     setState(() => _isSending = true);
 
     try {
+      // 📍 CAPTURE DE LA POSITION GPS PHYSIQUE DE L'ÉMETTEUR
+      double latEmetteur = 4.0510; // Position de repli Camp Yabassi
+      double lngEmetteur = 9.7679;
+
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+        latEmetteur = position.latitude;
+        lngEmetteur = position.longitude;
+      } catch (e) {
+        debugPrint("Hoquet GPS émetteur (utilisation valeur par défaut) : $e");
+      }
+
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _supabase.storage.from('audios_recrutement').uploadBinary(
@@ -108,40 +123,40 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
       final audioUrl =
           _supabase.storage.from('audios_recrutement').getPublicUrl(fileName);
 
-      // 🧠 SÉCURITÉ RÉSEAU : Statut réglementaire 'en_attente' pour réveiller les radars de la flotte !
+      // 🧠 Extraction Sémantique Simulée pour la grille de match
+      String marqueExtraite = "Toyota";
+      String pieceExtraite =
+          _typeFluxSelected == 'presentiel' ? "Amortisseur" : "Cardan";
+
+      // 🚀 INJECTION ÉTANCHE EN BASE AVEC LES MARQUES ET LA GÉOLOCALISATION
       await _supabase.from('Alertes').insert({
         'demandeur_id': widget.idGerant,
         'type_flux': _typeFluxSelected,
         'audio_url': audioUrl,
-        'statut_alerte': 'en_attente', // 👈 CORRIGÉ ICI D'AUTORITÉ !
+        'statut_alerte': 'en_attente',
+        'marque_concernee': marqueExtraite,
+        'piece_concernee': pieceExtraite,
+        'lat_emetteur': latEmetteur, // 👈 PUSH LA POSITION GPS ICI D'AUTORITÉ !
+        'lng_emetteur': lngEmetteur,
       });
 
       if (mounted) {
         setState(() => _isSending = false);
+        _afficherMessage("🚀 Alerte propulsée avec succès !", Colors.green);
 
-        // 🧠 SIMULATION SÉMANTIQUE : On génère un scénario selon le choix du gérant
-        String marqueSimulee = "Toyota";
-        String pieceSimulee =
-            _typeFluxSelected == 'presentiel' ? "Amortisseur" : "Cardan";
-
-        // 🚀 NAVIGATION AUTOMATIQUE : On propulse le gérant directement sur le moteur de courtage
+        // Transition d'autorité vers l'écran de courtage match
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => MoteurCourtageScreen(
-              marqueRecherche: marqueSimulee,
-              typeRecherche: pieceSimulee,
-              latG1: 4.0510, // Position de test de G1 à Douala
-              lngG1: 9.7679,
-              idUtilisateur:
-                  widget.idGerant, // 👈 INJECTE CETTE LIGNE D'AUTORITÉ ICI !
+              marqueRecherche: marqueExtraite,
+              typeRecherche: pieceExtraite,
+              latG1: latEmetteur,
+              lngG1: lngEmetteur,
+              idUtilisateur: widget.idGerant,
             ),
           ),
         );
-
-        setState(() {
-          _audioBytes = null;
-        });
       }
     } catch (e) {
       setState(() => _isSending = false);
@@ -162,13 +177,13 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
 
   @override
   void dispose() {
-    _audioRecorder.dispose();
+    _audioRecorder.dispose(); // 👈 Libération étanche du micro en RAM
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🌍 Détection de la langue du système
+    // 🌍 Détection automatique de la langue du système de la boutique
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Scaffold(
@@ -177,14 +192,14 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
             ? 'SWINTEL - Broadcast Alert'
             : 'SWINTEL - Émettre Alerte'),
         backgroundColor: Colors.amber,
-        // 🎯 FORCE LE BOUTON ET L'ACTION DE RETOUR IMMÉDIATE
+        // 🎯 FORCE LE BOUTON ET L'ACTION DE RETOUR IMMÉDIATE POUR LE DIRECTEUR
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: _isSending
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.amber))
           : Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -199,12 +214,13 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
                   const SizedBox(height: 10),
                   Row(
                     children: [
+                      // 🚶‍♂️ OPTION COMPTOIR (PRÉSENTIEL)
                       Expanded(
                         child: ChoiceChip(
                           label: Text(
                               isEnglish
-                                  ? '🚶\u200d‍♂️ COUNTER\n(In-person)'
-                                  : '🚶\u200d‍♂️ COMPTOIR\n(Présentiel)',
+                                  ? '🚶‍♂️ COUNTER\n(In-person)'
+                                  : '🚶‍♂️ COMPTOIR\n(Présentiel)',
                               textAlign: TextAlign.center),
                           selected: _typeFluxSelected == 'presentiel',
                           onSelected: (val) =>
@@ -212,6 +228,7 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
                         ),
                       ),
                       const SizedBox(width: 10),
+                      // 📞 OPTION TÉLÉPHONE (DISTANCIEL)
                       Expanded(
                         child: ChoiceChip(
                           label: Text(
@@ -234,6 +251,8 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 15),
+
+                  // 🎤 CONTENEUR ANIME REACTION TACTILE STYLE WHATSAPP
                   GestureDetector(
                     onLongPressStart: (_) => _demarrerEnregistrement(),
                     onLongPressEnd: (_) => _arreterEnregistrement(),
@@ -278,6 +297,8 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
                     ),
                   ),
                   const SizedBox(height: 60),
+
+                  // 📡 LE BOUTON FINAL DE PROPULSION DU SIGNAL GÉOSPATIAL
                   ElevatedButton(
                     onPressed: _propulserAlerte,
                     style: ElevatedButton.styleFrom(
