@@ -42,14 +42,12 @@ Future<void> main() async {
 
   // 🧠 3. CRÉATION DU CANAL D'URGENCE "STYLE FACEBOOK"
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'swintel_urgent_channel',
-    '🚨 SWINTEL - ALERTES CRUCIALES',
-    description:
-        'Canal d\'urgence prioritaire pour les missions flash de pièces détachées',
+    'swintel_sirene_force', // 👈 NOUVEL ID DE FORCE ICI !
+    '🚨 SWINTEL - SIRENE D\'URGENCE',
+    description: 'Canal prioritaire',
     importance: Importance.max,
     playSound: true,
-    sound: RawResourceAndroidNotificationSound(
-        'sirene'), // Notre fichier local sirene.ogg
+    sound: RawResourceAndroidNotificationSound('sirene'),
     enableVibration: true,
   );
 
@@ -57,7 +55,7 @@ Future<void> main() async {
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
-    // 🎯 VERROU SÉCURITÉ ANDROID MODERNE : Demande de force l'autorisation d'émettre des sons et pop-ups !
+  // 🎯 VERROU SÉCURITÉ ANDROID MODERNE : Demande de force l'autorisation d'émettre des sons et pop-ups !
   if (androidImplementation != null) {
     await androidImplementation.createNotificationChannel(channel);
     // Demande la permission physique à l'utilisateur sur le A10, A15 et Tecno

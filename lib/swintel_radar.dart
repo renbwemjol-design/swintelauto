@@ -114,29 +114,33 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
 
-             // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Vérification Syntaxe)
+            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Vérification Syntaxe)
             try {
               const AndroidNotificationDetails androidNotificationDetails =
                   AndroidNotificationDetails(
-                'swintel_urgent_channel', // ID du canal du main.dart
-                '🚨 SWINTEL - ALERTES CRUCIALES',
+                'swintel_sirene_force', // 👈 ALIGNÉ ICI AUSSI !
+                '🚨 SWINTEL - SIRENE D\'URGENCE',
                 channelDescription: 'Canal d\'urgence prioritaire',
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
-                sound: RawResourceAndroidNotificationSound('sirene'), // Cible sirene.ogg local
+                sound: RawResourceAndroidNotificationSound('sirene'),
               );
 
-              const NotificationDetails notificationDetails = NotificationDetails(
+              const NotificationDetails notificationDetails =
+                  NotificationDetails(
                 android: androidNotificationDetails,
               );
 
-              // 🎯 APPEL DE FORCE : Chaque argument porte son étiquette réglementaire
+              // 🎯 RECTIFICATION COMPLÈTE 2026 : Chaque argument est nommé sans exception !
               await flutterLocalNotificationsPlugin.show(
-                idAlerte.hashCode,
-                '🔥 MISSION FLASH SWINTEL !',
-                'Un gérant cherche une pièce ! Touchez pour ouvrir.',
-                notificationDetails: notificationDetails,
+                id: idAlerte
+                    .hashCode, // 👈 IDENTIFIANT UNIQUE NOMMÉ D'AUTORITÉ !
+                title: '🔥 MISSION FLASH SWINTEL !', // 👈 TITRE NOMMÉ !
+                body:
+                    'Un gérant cherche une pièce ! Touchez pour ouvrir.', // 👈 CORPS DU MESSAGE NOMMÉ !
+                notificationDetails:
+                    notificationDetails, // Le canal d'urgence multimédia
               );
               print("📡 Signal sonore propulsé au canal Android !");
             } catch (e) {
