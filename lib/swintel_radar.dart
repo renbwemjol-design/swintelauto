@@ -67,98 +67,120 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String demandeurId = alerte['demandeur_id'] ?? '';
           final String statutAlerte = alerte['statut_alerte'] ?? '';
 
-          // 🎯 NOUVELLES COUTURES SÉMANTIQUES : Extraction des filtres de l'alerte
+          // 🎯 EXTRACTION SÉMANTIQUES : Extraction des filtres de l'alerte
           final String marqueRecherche = alerte['marque_concernee'] ?? '';
           final String pieceRecherche = alerte['piece_concernee'] ?? '';
 
-          // Coordonnées GPS de l'émetteur G1 (à extraire de la table ou simulées)
+          // Coordonnées GPS de l'émetteur G1 (Lues en base ou repli Camp Yabassi)
           final double latG1 = alerte['lat_emetteur'] ?? 4.0510;
           final double lngG1 = alerte['lng_emetteur'] ?? 9.7679;
 
           if (statutAlerte != 'en_attente') return;
-          if (demandeurId == widget.idUtilisateur) return;
+          if (demandeurId == widget.idUtilisateur)
+            return; // Anti-auto-vibration
 
-          // ----------------------------------------------------------------------
-          // 🏆 FILTRE 1 : LE FILTRE SÉMANTIQUE DU STOCK LOCAL
-          // ----------------------------------------------------------------------
-          bool estSpecialisteMarque = widget.nomMagasinLocal
-                  .toLowerCase()
-                  .contains(marqueRecherche.toLowerCase()) ||
-              marqueRecherche.isEmpty;
+          try {
+            // ----------------------------------------------------------------------
+            // 🏆 FILTRE 1 : CORRÉLATION SÉMANTIQUE DU STOCK DE LA BOUTIQUE ACTUELLE
+            // ----------------------------------------------------------------------
+            // Le téléphone va interroger la table Magasins pour vérifier ses propres spécialités
+            final boutiqueData = await _supabase
+                .from('Magasins')
+                .select('specialite_marque, specialite_type, lat, lng')
+                .eq('telephone', widget.idUtilisateur)
+                .maybeSingle();
 
-          if (!estSpecialisteMarque) {
-            return; // 🛑 Le magasin actuel n'a pas cette marque -> Le téléphone reste muet !
-          }
+            if (boutiqueData == null) return;
 
-          // ----------------------------------------------------------------------
-          // 🏆 FILTRE 2 : LE FILTRE SPATIAL (La distance "raisonnable" de 5 KM)
-          // ----------------------------------------------------------------------
-          double latMagasinActuel = 4.0520;
-          double lngMagasinActuel = 9.7685;
+            final String maMarque = boutiqueData['specialite_marque'] ?? '';
+            final String monTypePiece = boutiqueData['specialite_type'] ?? '';
+            final double maLat =
+                (boutiqueData['lat'] as num?)?.toDouble() ?? 0.0;
+            final double maLng =
+                (boutiqueData['lng'] as num?)?.toDouble() ?? 0.0;
 
-          double distanceDuDeal = _calculerDistanceHaversine(
-              latG1, lngG1, latMagasinActuel, lngMagasinActuel);
+            // Logique de filtrage sémantique tolérante aux minuscules/majuscules
+            bool marqueCompatible = maMarque
+                    .toLowerCase()
+                    .contains(marqueRecherche.toLowerCase()) ||
+                marqueRecherche.isEmpty;
+            bool pieceCompatible = monTypePiece
+                    .toLowerCase()
+                    .contains(pieceRecherche.toLowerCase()) ||
+                pieceRecherche.isEmpty;
 
-          if (distanceDuDeal > 5.0) {
-            return; // 🛑 Le magasin est trop loin -> On coupe le signal !
-          }
-          // ----------------------------------------------------------------------
-          // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET SURGIT !
-          // ----------------------------------------------------------------------
-          if (mounted) {
-            // 📳 ACTION 1.A : RE-COUTURE DES ONDES DE CHOC DE VIBRATION (Intensité 255)
-            if (await Vibration.hasVibrator() ?? false) {
-              Vibration.vibrate(
-                pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
-                intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
-              );
+            // Si le magasin n'a pas la spécialité demandée, on coupe instantanément le signal !
+            if (!marqueCompatible || !pieceCompatible) {
+              return; // 🛑 Boutique non qualifiée. Le téléphone reste totalement muet !
             }
 
-            // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK" (Vérification Syntaxe)
-            try {
-              const AndroidNotificationDetails androidNotificationDetails =
-                  AndroidNotificationDetails(
-                'swintel_sirene_force', // 👈 ALIGNÉ ICI AUSSI !
-                '🚨 SWINTEL - SIRENE D\'URGENCE',
-                channelDescription: 'Canal d\'urgence prioritaire',
-                importance: Importance.max,
-                priority: Priority.high,
-                playSound: true,
-                sound: RawResourceAndroidNotificationSound('sirene'),
-              );
+            // ----------------------------------------------------------------------
+            // 🏆 FILTRE 2 : LE CALCUL GÉOSPATIAL (Formule de Haversine)
+            // ----------------------------------------------------------------------
+            double distanceDuDeal =
+                _calculerDistanceHaversine(latG1, lngG1, maLat, maLng);
 
-              const NotificationDetails notificationDetails =
-                  NotificationDetails(
-                android: androidNotificationDetails,
-              );
-
-              // 🎯 RECTIFICATION COMPLÈTE 2026 : Chaque argument est nommé sans exception !
-              await flutterLocalNotificationsPlugin.show(
-                id: idAlerte
-                    .hashCode, // 👈 IDENTIFIANT UNIQUE NOMMÉ D'AUTORITÉ !
-                title: '🔥 MISSION FLASH SWINTEL !', // 👈 TITRE NOMMÉ !
-                body:
-                    'Un gérant cherche une pièce ! Touchez pour ouvrir.', // 👈 CORPS DU MESSAGE NOMMÉ !
-                notificationDetails:
-                    notificationDetails, // Le canal d'urgence multimédia
-              );
-              print("📡 Signal sonore propulsé au canal Android !");
-            } catch (e) {
-              debugPrint("Hoquet sirène Facebook : $e");
+            if (distanceDuDeal > 5.0) {
+              return; // 🛑 Trop loin du goudron de G1 (supérieur à 5 km) -> On coupe !
             }
+            // ----------------------------------------------------------------------
+            // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET SURGIT !
+            // ----------------------------------------------------------------------
+            if (mounted) {
+              // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
+              if (await Vibration.hasVibrator() ?? false) {
+                Vibration.vibrate(
+                  pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
+                  intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
+                );
+              }
 
-            // 🚀 ACTION 2 : L'écran de mission Flash surgit de force sur les pixels !
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AlerteFlashVendeurScreen(
-                  idAlerte: idAlerte,
-                  idVendeur: demandeurId,
-                  nomMagasin: widget.nomMagasinLocal,
-                  audioUrl: audioUrl,
+              // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK"
+              try {
+                const AndroidNotificationDetails androidNotificationDetails =
+                    AndroidNotificationDetails(
+                  'swintel_sirene_force',
+                  '🚨 SWINTEL - SIRENE D\'URGENCE',
+                  channelDescription: 'Canal d\'urgence prioritaire',
+                  importance: Importance.max,
+                  priority: Priority.high,
+                  playSound: true,
+                  sound: RawResourceAndroidNotificationSound('sirene'),
+                );
+
+                const NotificationDetails notificationDetails =
+                    NotificationDetails(
+                  android: androidNotificationDetails,
+                );
+
+                // Syntaxe 2026 : Chaque argument est nommé sans exception !
+                await flutterLocalNotificationsPlugin.show(
+                  id: idAlerte.hashCode,
+                  title: '🔥 MISSION FLASH SWINTEL !',
+                  body:
+                      'Une pièce compatible ($marqueRecherche) est recherchée à ${distanceDuDeal.toStringAsFixed(1)} km !',
+                  notificationDetails: notificationDetails,
+                );
+                print("📡 Signal sonore propulsé au canal Android !");
+              } catch (e) {
+                debugPrint("Hoquet sirène Facebook : $e");
+              }
+
+              // 🚀 ACTION 2 : L'écran de mission Flash surgit de force sur les pixels !
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AlerteFlashVendeurScreen(
+                    idAlerte: idAlerte,
+                    idVendeur: demandeurId,
+                    nomMagasin: widget.nomMagasinLocal,
+                    audioUrl: audioUrl,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
+          } catch (e) {
+            debugPrint("Hoquet filtres sémantiques : $e");
           }
         });
   }
