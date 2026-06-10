@@ -124,15 +124,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
 
-            // 📥 BOUTON 2 : HUB RECEPTION (PARFAITEMENT REFERMÉ !)
+            // 📥 BOUTON 2 : HUB RECEPTION (RACCORDEMENT DE FORCE 2026)
             Expanded(
               child: ElevatedButton(
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          HubAlertesScreen(idUtilisateur: widget.idUtilisateur),
-                    )), // 👈 PARENTHÈSE ET VIRGULE DE SÉCURITÉ AJOUTÉES ICI !
+                      builder: (context) => HubAlertesScreen(
+                        idUtilisateur: widget.idUtilisateur,
+                        nomMagasinLocal: _nomBoutiqueLocale, // 👈 PARFAITEMENT INJECTÉ ICI !
+                      ),
+                    )), 
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -140,6 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12)),
                     elevation: 4),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // 👈 Sécurité d'affichage pour le rendu
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.forum_outlined, size: 30),
