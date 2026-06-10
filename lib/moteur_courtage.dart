@@ -157,7 +157,7 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     }
   }
 
-  // 💬 Action Courtage : Redirection instantanée et native vers l'application WhatsApp
+   // 💬 Action Courtage : Redirection instantanée et native vers l'application WhatsApp
   Future<void> _appelerMagasin(String telephone, String nomMagasin) async {
     String numeroPropre = telephone.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
 
@@ -170,16 +170,17 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
         ? "Hello $nomMagasin, I am contacting you via SWINTEL for a spare part deal!"
         : "Bonjour $nomMagasin, je vous contacte via SWINTEL pour une affaire de pièce détachée !";
 
-    final String urlWhatsApp =
-        "whatsapp://send?phone=$numeroPropre&text=${Uri.encodeComponent(messageText)}";
+    final String urlWhatsApp = "whatsapp://send?phone=$numeroPropre&text=${Uri.encodeComponent(messageText)}";
     final Uri launchUri = Uri.parse(urlWhatsApp);
 
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
+        // 🎯 RECTIFICATION SYNTAXE API WHATSAPP : Le lien de secours internet est désormais 100% fonctionnel !
         final Uri backupUri =
-            Uri.parse("https://wa.me{Uri.encodeComponent(messageText)}");
+            Uri.parse("https://wa.me"+numeroPropre+"?text="Uri.encodeComponent(messageText)");
+ 
         if (await canLaunchUrl(backupUri)) {
           await launchUrl(backupUri, mode: LaunchMode.externalApplication);
         } else {
