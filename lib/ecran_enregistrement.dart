@@ -205,26 +205,32 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
+                  // 🎯 RECTIFICATION DIRECTE : Intégration des guides multi-marques
                   TextField(
                     controller: _marqueController,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Votre Spécialité Marque (Ex: Toyota, Range Rover) *',
+                      labelText: 'Vos Marques (Séparées par des virgules) *',
+                      hintText:
+                          'Ex: Toyota, Range Rover, Mercedes', // 👈 GUIDE VISUEL APPLIQUÉ
                       prefixIcon:
                           Icon(Icons.directions_car, color: Colors.orange),
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 15),
+
+                  // 🎯 RECTIFICATION DIRECTE : Intégration des guides multi-pièces
                   TextField(
                     controller: _pieceController,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Votre Spécialité Pièce (Ex: Amortisseur, Cardan) *',
+                      labelText: 'Vos Pièces (Séparées par des virgules) *',
+                      hintText:
+                          'Ex: Amortisseur, Cardan, Boite, Phare', // 👈 GUIDE VISUEL APPLIQUÉ
                       prefixIcon: Icon(Icons.build, color: Colors.orange),
                       border: OutlineInputBorder(),
                     ),
                   ),
+
                   const SizedBox(height: 15),
                   TextField(
                     controller: _adresseController,
