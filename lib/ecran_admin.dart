@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart'; // 👈 1. ALIGNEMENT MULTIMÉDIA UNIQUE ET ÉTANCHE !
 
 class EcranAdminSecret extends StatefulWidget {
   const EcranAdminSecret({super.key});
@@ -11,133 +11,195 @@ class EcranAdminSecret extends StatefulWidget {
 
 class _EcranAdminSecretState extends State<EcranAdminSecret> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _audioPlayer =
+      AudioPlayer(); // 👈 Utilise désormais le moteur just_audio unifié
 
-  List<dynamic> _magasinsEnAttente = [];
+  List<dynamic> _tousLesMagasins = [];
   bool _isLoading = true;
-  String? _idAudioEnCours; // Pour savoir quelle ligne est en train d'être jouée
+  String? _idAudioEnCours; // Pour traquer la ligne vocale active
 
   @override
   void initState() {
     super.initState();
-    _recupererCandidatures();
+    _recupererTouteLaFlotte();
   }
 
-  // 🔍 1. Scan de la table pour trouver UNIQUEMENT les 'en_attente'
-  // 🔍 Scan de la table pour trouver UNIQUEMENT les 'en_attente'
-  Future<void> _recupererCandidatures() async {
+  // 🔍 SCAN UNIFIÉ : L'administrateur charge toute la flotte pour surveiller l'état réel des 35 magasins
+  Future<void> _recupererTouteLaFlotte() async {
     setState(() => _isLoading = true);
     try {
-      // ✅ CORRECTION SEUR : On force la sélection explicite de toutes les colonnes
       final List<dynamic> data = await _supabase
           .from('Magasins')
           .select(
-              '*') // 👈 Le '*' force Supabase à envoyer toutes les nouvelles colonnes
-          .eq('statut', 'en_attente');
+              '*') // Force la réception de toutes les colonnes sémantiques et spatiales
+          .order('nom', ascending: true);
 
       setState(() {
-        _magasinsEnAttente = data;
+        _tousLesMagasins = data;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      _afficherMessage("Erreur chargement : $e", Colors.red);
+      _afficherMessage("Erreur chargement flotte : $e", Colors.red);
     }
   }
 
-  // ✅ 2. Le bouton de certification "Sawa"
-  Future<void> _validerMagasin(String id, String nom) async {
+  // ✅ CERTIFICATION DE CONFIANCE : Mutation du statut en base de données
+  Future<void> _validerMagasin(
+      String id, String nom, String statutActuel) async {
+    // Si le magasin est déjà certifié, l'admin peut le repasser en actif simple (Basculeur)
+    final String nouveauStatut =
+        statutActuel == 'certifie' ? 'actif' : 'certifie';
     try {
       await _supabase
           .from('Magasins')
-          .update({'statut': 'certifie'}) // Passe le statut au vert
-          .eq('id', id); // 'id' ou la clé unique de ta table
+          .update({'statut': nouveauStatut}).eq('id', id);
 
       _afficherMessage(
-          "🎉 $nom est désormais Certifié SWINTEL !", Colors.green);
-      _recupererCandidatures(); // Rafraîchit la liste automatiquement
+          nouveauStatut == 'certifie'
+              ? "🎉 $nom est désormais Certifié SWINTEL !"
+              : "⚡ $nom est repassé en statut Actif standard",
+          Colors.green);
+      _recupererTouteLaFlotte(); // Rafraîchissement automatique instantané
     } catch (e) {
-      _afficherMessage("Erreur validation : $e", Colors.red);
+      _afficherMessage("Erreur mise à jour statut : $e", Colors.red);
     }
   }
 
-  // 🎧 3. Écouter le repère vocal sémantique (.webm)
+  // 🎧 LECTURE TEMPS RÉEL : Décodeur unifié just_audio pour le goudron (Zéro interférence)
   Future<void> _gererAudio(String id, String? urlAudio) async {
     if (urlAudio == null || urlAudio.isEmpty) {
-      _afficherMessage("Aucun repère vocal pour ce magasin", Colors.orange);
+      _afficherMessage(
+          "Aucun repère vocal sémantique pour ce magasin", Colors.orange);
       return;
     }
 
     try {
       if (_idAudioEnCours == id) {
-        // Si on clique sur le même audio en cours, on l'arrête
-        await _audioPlayer.stop();
+        await _audioPlayer
+            .stop(); // 🎯 Arrêt d'autorité si on reclique sur la même ligne
         setState(() => _idAudioEnCours = null);
       } else {
-        // Sinon, on joue le nouvel audio directement depuis l'URL internet
-        await _audioPlayer.play(UrlSource(urlAudio));
+        await _audioPlayer
+            .setUrl(urlAudio); // 🎯 Chargement direct du flux brut
+        _audioPlayer.play();
         setState(() => _idAudioEnCours = id);
+
+        // Filet de sécurité : Quand l'audio se termine, on libère l'icône graphiquement
+        _audioPlayer.playerStateStream.listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            if (mounted) setState(() => _idAudioEnCours = null);
+          }
+        });
       }
     } catch (e) {
-      _afficherMessage("Impossible de lire l'audio : $e", Colors.red);
+      _afficherMessage("Impossible de lire le vocal Cloud : $e", Colors.red);
     }
   }
 
   void _afficherMessage(String msg, Color couleur) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: couleur),
+        SnackBar(
+            content: Text(msg),
+            backgroundColor: couleur,
+            duration: const Duration(seconds: 2)),
       );
     }
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
+    _audioPlayer
+        .dispose(); // 👈 Libération indispensable des puces audio du Samsung A10 !
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('SWINTEL - Centre de Contrôle'),
+        title: const Text('SWINTEL - Centre de Contrôle',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 16)),
         backgroundColor: Colors.indigo,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _recupererCandidatures,
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _recupererTouteLaFlotte,
           )
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _magasinsEnAttente.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+          : _tousLesMagasins.isEmpty
               ? const Center(
-                  child: Text('Aucune inscription en attente de validation.'))
+                  child:
+                      Text('Aucun magasin répertorié dans la flotte SWINTEL.'))
               : ListView.builder(
-                  itemCount: _magasinsEnAttente.length,
-                  padding: const EdgeInsets.all(10),
+                  itemCount: _tousLesMagasins.length,
+                  padding: const EdgeInsets.all(12),
                   itemBuilder: (context, index) {
-                    final magasin = _magasinsEnAttente[index];
+                    final magasin = _tousLesMagasins[index];
                     final String id = magasin['id'].toString();
-                    final String nom = magasin['nom'] ?? 'Inconnu';
+                    final String nom = magasin['nom'] ?? 'Boutique Anonyme';
                     final String tel = magasin['telephone'] ?? 'Pas de numéro';
                     final String? audioUrl = magasin['audio_url'];
+                    final String statut = magasin['statut'] ?? 'actif';
+
+                    final bool estCertifie = statut == 'certifie';
 
                     return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
-                        title: Text(nom,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                            "WhatsApp : $tel\nPosition : [${magasin['lat']}, ${magasin['lng']}]"),
+                        contentPadding: const EdgeInsets.all(12),
+                        title: Row(
+                          children: [
+                            Text(nom,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15)),
+                            const Spacer(),
+                            // Badge d'autorité visuel de la flotte
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: estCertifie
+                                    ? Colors.green.withOpacity(0.2)
+                                    : Colors.grey.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                estCertifie ? "CERTIFIÉ" : "ACTIF",
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: estCertifie
+                                        ? Colors.green
+                                        : Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.top(6.0),
+                          child: Text(
+                            "📞 WhatsApp : $tel\n📍 GPS : [${magasin['lat']}, ${magasin['lng']}]\n🛠️ Stock : ${magasin['specialite_marque']} (${magasin['specialite_type']})",
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black87),
+                          ),
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Bouton d'écoute audio 🎧
+                            // 🎧 ÉCOUTE DU REPÈRE VOCAL DE LA BOUTIQUE
                             IconButton(
                               icon: Icon(
                                 _idAudioEnCours == id
@@ -146,18 +208,31 @@ class _EcranAdminSecretState extends State<EcranAdminSecret> {
                                 color: _idAudioEnCours == id
                                     ? Colors.red
                                     : Colors.indigo,
-                                size: 32,
+                                size: 34,
                               ),
                               onPressed: () => _gererAudio(id, audioUrl),
                             ),
-                            const SizedBox(width: 10),
-                            // Bouton Valider ✅
+                            const SizedBox(width: 5),
+
+                            // 🦾 ACTIONNEUR DOUBLE ÉTAT : CERTIFIER OU ACTIVER DIRECTEMENT
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green),
-                              onPressed: () => _validerMagasin(id, nom),
-                              child: const Text('VALIDER',
-                                  style: TextStyle(color: Colors.white)),
+                                backgroundColor: estCertifie
+                                    ? Colors.blueGrey
+                                    : Colors.green,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                              ),
+                              onPressed: () => _validerMagasin(id, nom, statut),
+                              child: Text(
+                                estCertifie ? 'ANNULER' : 'CERTIFIER',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
