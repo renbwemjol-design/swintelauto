@@ -188,14 +188,17 @@ class _EcranAdminSecretState extends State<EcranAdminSecret> {
                             ),
                           ],
                         ),
+                        // 🎯 RECTIFICATION SYNTAXE DIRECTE : Utilisation de .only pour caler le haut !
                         subtitle: Padding(
-                          padding: const EdgeInsets.top(6.0),
+                          padding: const EdgeInsets.only(
+                              top: 6.0), // 👈 CORRIGÉ ICI D'AUTORITÉ !
                           child: Text(
                             "📞 WhatsApp : $tel\n📍 GPS : [${magasin['lat']}, ${magasin['lng']}]\n🛠️ Stock : ${magasin['specialite_marque']} (${magasin['specialite_type']})",
                             style: const TextStyle(
                                 fontSize: 12, color: Colors.black87),
                           ),
                         ),
+
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
