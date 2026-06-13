@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart'; // 👈 IMPORTATION DU CAPTEUR SATELLITAIRE DE BASE
 import 'package:shared_preferences/shared_preferences.dart'; // Pour figer la session locale
 import 'dashboard.dart';
+import 'ecran_admin.dart'; // 👈 INDISPENSABLE POUR LE COMMUTATEUR DIRECTEUR SECRETS
 
 class EcranEnregistrementScreen extends StatefulWidget {
   const EcranEnregistrementScreen({super.key});
@@ -100,23 +101,46 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         'statut': 'actif', // Le magasin entre immédiatement en service actif !
       });
 
-      // 3. ENREGISTREMENT LOCAL (RAM & MEMOIRE FLASH DU SMARTPHONE)
+      // 3. ENREGISTREMENT LOCAL & STRATÉGIE DES RÔLES EN MÉMOIRE FLASH
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('telephone_local', tel);
-      await prefs.setString('nom_magasin_local', nom);
+      final String monRole = prefs.getString('swintel_role') ?? 'gerant';
+
+      // On ne fige la session que si l'utilisateur est un vrai gérant indépendant
+      if (monRole == 'gerant') {
+        await prefs.setString('telephone_local', tel);
+        await prefs.setString('nom_magasin_local', nom);
+      }
 
       _afficherMessage("🎉 Activation Swintel réussie ! Bienvenue au goudron.",
           Colors.green);
 
       if (mounted) {
         setState(() => _isSaving = false);
-        // On propulse le gérant directement sur son Tableau de Bord tout neuf
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DashboardScreen(idUtilisateur: tel),
-          ),
-        );
+
+        // 🎯 AIGUILLAGE CHIRURGICAL DU FLUX DE TERRAIN
+        if (monRole == 'prospecteur') {
+          // PROSPECTEUR : Boucle infinie. On purge l'affichage pour le magasin suivant.
+          _nomBoutiqueController.clear();
+          _telephoneController.clear();
+          _marqueController.clear();
+          _pieceController.clear();
+          _adresseController.clear();
+          setState(() {
+            _latMagasin = null;
+            _lngMagasin = null;
+          });
+          _afficherMessage(
+              "🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !",
+              Colors.indigo);
+        } else {
+          // GÉRANT : Propulsion standard vers le Dashboard orange connecté
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DashboardScreen(idUtilisateur: tel),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -142,14 +166,33 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   }
 
   @override
+  void dispose() {
+    _nomBoutiqueController.dispose();
+    _telephoneController.dispose();
+    _marqueController.dispose();
+    _pieceController.dispose();
+    _adresseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          '🔥 SWINTEL - ACTIVATION DU RÉSEAU',
-          style: TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+        title: GestureDetector(
+          onLongPress: () {
+            // 🎯 INTERRUPTEUR TEXTUEL SECRET DU DIRECTEUR : Ouverture d'autorité !
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EcranAdminSecret()),
+            );
+          },
+          child: const Text(
+            '🔥 SWINTEL - ACTIVATION DU RÉSEAU',
+            style: TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ),
         backgroundColor: Colors.amber,
         centerTitle: true,
@@ -205,13 +248,12 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  // 🎯 RECTIFICATION DIRECTE : Intégration des guides multi-marques
+
                   TextField(
                     controller: _marqueController,
                     decoration: const InputDecoration(
                       labelText: 'Vos Marques (Séparées par des virgules) *',
-                      hintText:
-                          'Ex: Toyota, Range Rover, Mercedes', // 👈 GUIDE VISUEL APPLIQUÉ
+                      hintText: 'Ex: Toyota, Range Rover, Mercedes',
                       prefixIcon:
                           Icon(Icons.directions_car, color: Colors.orange),
                       border: OutlineInputBorder(),
@@ -219,13 +261,11 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // 🎯 RECTIFICATION DIRECTE : Intégration des guides multi-pièces
                   TextField(
                     controller: _pieceController,
                     decoration: const InputDecoration(
                       labelText: 'Vos Pièces (Séparées par des virgules) *',
-                      hintText:
-                          'Ex: Amortisseur, Cardan, Boite, Phare', // 👈 GUIDE VISUEL APPLIQUÉ
+                      hintText: 'Ex: Amortisseur, Cardan, Boite, Phare',
                       prefixIcon: Icon(Icons.build, color: Colors.orange),
                       border: OutlineInputBorder(),
                     ),
