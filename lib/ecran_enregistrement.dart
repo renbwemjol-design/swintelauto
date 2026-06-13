@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart'; // 👈 IMPORTATION DU CAPTEUR SATELLITAIRE DE BASE
 import 'package:shared_preferences/shared_preferences.dart'; // Pour figer la session locale
 import 'dashboard.dart';
-import 'ecran_admin.dart'; // 👈 INDISPENSABLE POUR LE COMMUTATEUR DIRECTEUR SECRETS
+import 'ecran_admin.dart'; // 👈 POUR LE COMMUTATEUR DIRECTEUR SECRET
 
 class EcranEnregistrementScreen extends StatefulWidget {
   const EcranEnregistrementScreen({super.key});
@@ -28,6 +28,9 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   double? _lngMagasin;
   bool _isLocating = false;
   bool _isSaving = false;
+
+  // 🎯 ARCHITECTURE DES RÔLES DÉFINITIVE : Traque du profil sélectionné à l'écran
+  String _roleSaisi = 'gerant'; // Valeurs possibles : 'gerant' ou 'prospecteur'
 
   // 🧠 CAPTURE GPS DE SÉCURITÉ DE LA BOUTIQUE AVEC TIMEOUT IMMUNE
   Future<void> _capturerPositionMagasin() async {
@@ -57,8 +60,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       _afficherMessage("📍 Emplacement du magasin capturé !", Colors.green);
     } catch (e) {
       setState(() {
-        _latMagasin =
-            4.0510; // Repli d'autorité sur le point central de Camp Yabassi
+        _latMagasin = 4.0510; // Repli d'autorité sur Camp Yabassi
         _lngMagasin = 9.7679;
         _isLocating = false;
       });
@@ -101,12 +103,13 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         'statut': 'actif', // Le magasin entre immédiatement en service actif !
       });
 
-      // 3. ENREGISTREMENT LOCAL & STRATÉGIE DES RÔLES EN MÉMOIRE FLASH
+      // 3. ENREGISTREMENT LOCAL & CONFIGURATION SUR MESURE DU RÔLE SÉLECTIONNÉ
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String monRole = prefs.getString('swintel_role') ?? 'gerant';
+      await prefs.setString(
+          'swintel_role', _roleSaisi); // Fige le rôle choisi définitivement
 
-      // On ne fige la session que si l'utilisateur est un vrai gérant indépendant
-      if (monRole == 'gerant') {
+      // On ne fige la session permanente du terminal que si l'utilisateur est un vrai gérant indépendant
+      if (_roleSaisi == 'gerant') {
         await prefs.setString('telephone_local', tel);
         await prefs.setString('nom_magasin_local', nom);
       }
@@ -117,8 +120,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
 
-        // 🎯 AIGUILLAGE CHIRURGICAL DU FLUX DE TERRAIN
-        if (monRole == 'prospecteur') {
+        // 🎯 AIGUILLAGE CHIRURGICAL ET DÉFINITIF DU FLUX DE TERRAIN
+        if (_roleSaisi == 'prospecteur') {
           // PROSPECTEUR : Boucle infinie. On purge l'affichage pour le magasin suivant.
           _nomBoutiqueController.clear();
           _telephoneController.clear();
@@ -217,7 +220,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                     child: const Padding(
                       padding: EdgeInsets.all(15.0),
                       child: Text(
-                        "Bienvenue sur l'APK officielle SWINTEL. Enregistrez votre boutique pour recevoir les alertes ciblées de Camp Yabassi.",
+                        "Bienvenue sur l'APK officielle SWINTEL. Sélectionnez votre profil puis enregistrez la boutique.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 13,
@@ -226,7 +229,63 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
+
+                  // 🎯 L'INTERFACE DÉFINITIVE DE SÉLECTION DES RÔLES
+                  const Text(
+                    "Choisissez votre profil d'utilisation :",
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueGrey),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      // Bouton Profil Gérant Independant
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () =>
+                              setState(() => _roleSaisi = 'gerant'),
+                          icon: const Icon(Icons.store_mall_directory),
+                          label: const Text("GÉRANT"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _roleSaisi == 'gerant'
+                                ? Colors.amber
+                                : Colors.grey[200],
+                            foregroundColor: _roleSaisi == 'gerant'
+                                ? Colors.black
+                                : Colors.grey[600],
+                            elevation: _roleSaisi == 'gerant' ? 4 : 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Bouton Profil Agent / Prospecteur de Flotte
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () =>
+                              setState(() => _roleSaisi = 'prospecteur'),
+                          icon: const Icon(Icons.person_search),
+                          label: const Text("AGENT"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _roleSaisi == 'prospecteur'
+                                ? Colors.indigo
+                                : Colors.grey[200],
+                            foregroundColor: _roleSaisi == 'prospecteur'
+                                ? Colors.white
+                                : Colors.grey[600],
+                            elevation: _roleSaisi == 'prospecteur' ? 4 : 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
 
                   // FORMULAIRE CHIRURGICAL D'IDENTITÉ
                   TextField(
