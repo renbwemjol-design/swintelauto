@@ -135,15 +135,48 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
           _afficherMessage(
               "🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !",
               Colors.indigo);
+// 1111111
         } else {
-          // GÉRANT : Propulsion standard vers le Dashboard orange connecté
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DashboardScreen(idUtilisateur: tel),
+          // 🏆 GÉRANT STANDARD : VERROUILLAGE ET SALLE D'ATTENTE RÉGLEMENTAIRE
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              title: const Row(
+                children: [
+                  Icon(Icons.lock_clock, color: Colors.orange),
+                  SizedBox(width: 10),
+                  Text("Dossier en Examen",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              content: Text(
+                "Félicitations $nom !\n\nVotre boutique a été pré-enregistrée au statut ACTIF.\n\nL'administration de SWINTEL procède à la certification de vos coordonnées GPS et de vos stocks. Vous aurez accès au tableau de bord dès validation.",
+                style: const TextStyle(fontSize: 13),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _nomBoutiqueController.clear();
+                    _telephoneController.clear();
+                    _marqueController.clear();
+                    _pieceController.clear();
+                    _adresseController.clear();
+                  },
+                  child: const Text("COMPRIS, J'ATTENDS LA VALIDATION",
+                      style: TextStyle(
+                          color: Colors.orange, fontWeight: FontWeight.bold)),
+                )
+              ],
             ),
           );
         }
+
+        //2222222222
       }
     } catch (e) {
       if (mounted) {
