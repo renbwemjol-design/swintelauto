@@ -48,8 +48,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       // On accorde un maximum de 3 secondes à la puce pour accrocher le satellite
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
-        timeLimit:
-            const Duration(seconds: 3), // 👈 FILET DE SÉCURITÉ ANTI-FREEZE
+        timeLimit: const Duration(seconds: 3), // 👈 FILET DE SÉCURITÉ ANTI-FREEZE
       );
 
       setState(() {
@@ -69,7 +68,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
           Colors.blueGrey);
     }
   }
-
   // 🚀 INTERCONNEXION SUPABASE : Inscription de la boutique dans le réseau mondial
   Future<void> _activerMonMagasin() async {
     final String nom = _nomBoutiqueController.text.trim();
@@ -87,11 +85,10 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // 1. SÉCURITÉ GPS : Si le gérant n'a pas cliqué sur le bouton GPS, on force le repli
       final double latitudeFinale = _latMagasin ?? 4.0510;
       final double longitudeFinale = _lngMagasin ?? 9.7679;
 
-      // 2. INCORPORATION CLOUD : Insertion chirurgicale dans la table Magasins
+      // Incorporation Cloud au statut actif
       await _supabase.from('Magasins').insert({
         'nom': nom,
         'specialite_marque': marque,
@@ -100,15 +97,12 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         'adresse': adresse.isEmpty ? "Camp Yabassi, Douala" : adresse,
         'lat': latitudeFinale,
         'lng': longitudeFinale,
-        'statut': 'actif', // Le magasin entre immédiatement en service actif !
+        'statut': 'actif', 
       });
 
-      // 3. ENREGISTREMENT LOCAL & CONFIGURATION SUR MESURE DU RÔLE SÉLECTIONNÉ
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          'swintel_role', _roleSaisi); // Fige le rôle choisi définitivement
+      await prefs.setString('swintel_role', _roleSaisi); 
 
-      // On ne fige la session permanente du terminal que si l'utilisateur est un vrai gérant indépendant
       if (_roleSaisi == 'gerant') {
         await prefs.setString('telephone_local', tel);
         await prefs.setString('nom_magasin_local', nom);
@@ -119,10 +113,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
       if (mounted) {
         setState(() => _isSaving = false);
-
-        // 🎯 AIGUILLAGE CHIRURGICAL ET DÉFINITIF DU FLUX DE TERRAIN
+        
         if (_roleSaisi == 'prospecteur') {
-          // PROSPECTEUR : Boucle infinie. On purge l'affichage pour le magasin suivant.
           _nomBoutiqueController.clear();
           _telephoneController.clear();
           _marqueController.clear();
@@ -132,51 +124,10 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
             _latMagasin = null;
             _lngMagasin = null;
           });
-          _afficherMessage(
-              "🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !",
-              Colors.indigo);
-// 1111111
+          _afficherMessage("🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !", Colors.indigo);
         } else {
-          // 🏆 GÉRANT STANDARD : VERROUILLAGE ET SALLE D'ATTENTE RÉGLEMENTAIRE
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              title: const Row(
-                children: [
-                  Icon(Icons.lock_clock, color: Colors.orange),
-                  SizedBox(width: 10),
-                  Text("Dossier en Examen",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-              content: Text(
-                "Félicitations $nom !\n\nVotre boutique a été pré-enregistrée au statut ACTIF.\n\nL'administration de SWINTEL procède à la certification de vos coordonnées GPS et de vos stocks. Vous aurez accès au tableau de bord dès validation.",
-                style: const TextStyle(fontSize: 13),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _nomBoutiqueController.clear();
-                    _telephoneController.clear();
-                    _marqueController.clear();
-                    _pieceController.clear();
-                    _adresseController.clear();
-                  },
-                  child: const Text("COMPRIS, J'ATTENDS LA VALIDATION",
-                      style: TextStyle(
-                          color: Colors.orange, fontWeight: FontWeight.bold)),
-                )
-              ],
-            ),
-          );
+          _afficherDialogueExamen(nom);
         }
-
-        //2222222222
       }
     } catch (e) {
       if (mounted) {
@@ -189,18 +140,95 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     }
   }
 
-  void _afficherMessage(String msg, Color couleur) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: couleur,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+  // 🎯 PASSERELLE ASSOCIEE : Reconnexion instantanée des 35 gérants déjà certifiés sur Supabase
+  Future<void> _connexionMagasinExistant() async {
+    final String tel = _telephoneController.text.trim();
+
+    if (tel.isEmpty) {
+      _afficherMessage("⚠️ Saisissez votre Numéro de Téléphone pour vous connecter", Colors.orange);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final data = await _supabase
+          .from('Magasins')
+          .select('nom, statut')
+          .eq('telephone', tel)
+          .maybeSingle();
+
+      setState(() => _isSaving = false);
+
+      if (data == null) {
+        _afficherMessage("❌ Ce numéro n'est pas répertorié dans la flotte SWINTEL", Colors.red);
+        return;
+      }
+
+      final String nom = data['nom'] ?? 'Magasin';
+      final String statut = data['statut'] ?? 'actif';
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('swintel_role', 'gerant');
+
+      if (statut == 'certifie') {
+        // Enregistrement de session pour court-circuiter définitivement l'écran jaune au prochain démarrage
+        await prefs.setString('telephone_local', tel);
+        await prefs.setString('nom_magasin_local', nom);
+
+        _afficherMessage("🎉 Bon retour au goudron, $nom !", Colors.green);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DashboardScreen(idUtilisateur: tel),
+            ),
+          );
+        }
+      } else {
+        if (mounted) _afficherDialogueExamen(nom);
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      _afficherMessage("🚨 Erreur réseau : ${e.toString().split('\n').first}", Colors.red);
     }
   }
 
+  void _afficherDialogueExamen(String nom) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_clock, color: Colors.orange),
+            SizedBox(width: 10),
+            Text("Dossier en Examen", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          "Félicitations $nom !\n\nVotre boutique est bien répertoriée au statut ACTIF.\n\nL'administration de SWINTEL procède à la validation de vos accès. Vous entrerez sur le marché dès certification.",
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("COMPRIS", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _afficherMessage(String msg, Color couleur) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: couleur, duration: const Duration(seconds: 3)),
+      );
+    }
+  }
   @override
   void dispose() {
     _nomBoutiqueController.dispose();
@@ -285,10 +313,10 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _roleSaisi == 'gerant'
                                 ? Colors.amber
-                                : Colors.grey[200],
+                                : Colors.grey,
                             foregroundColor: _roleSaisi == 'gerant'
                                 ? Colors.black
-                                : Colors.grey[600],
+                                : Colors.grey,
                             elevation: _roleSaisi == 'gerant' ? 4 : 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
@@ -306,10 +334,10 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _roleSaisi == 'prospecteur'
                                 ? Colors.indigo
-                                : Colors.grey[200],
+                                : Colors.grey,
                             foregroundColor: _roleSaisi == 'prospecteur'
                                 ? Colors.white
-                                : Colors.grey[600],
+                                : Colors.grey,
                             elevation: _roleSaisi == 'prospecteur' ? 4 : 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
@@ -319,7 +347,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                     ],
                   ),
                   const SizedBox(height: 25),
-
                   // FORMULAIRE CHIRURGICAL D'IDENTITÉ
                   TextField(
                     controller: _nomBoutiqueController,
@@ -425,6 +452,21 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                       '🦾 ACTIVER MON MAGASIN & ENTRER EN FLOTTE',
                       style:
                           TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 🎯 DEUXIÈME DOUANE : Actionneur pour les 35 anciens gérants déjà certifiés
+                  TextButton(
+                    onPressed: _connexionMagasinExistant,
+                    child: const Text(
+                      "Déjà inscrit ? Connecter mon poste au réseau",
+                      style: TextStyle(
+                        color: Colors.blueGrey,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
