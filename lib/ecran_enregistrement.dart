@@ -10,6 +10,11 @@ class EcranEnregistrementScreen extends StatefulWidget {
   const EcranEnregistrementScreen({super.key});
 
   @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
+  }
+
+  @override
   State<EcranEnregistrementScreen> createState() =>
       _EcranEnregistrementScreenState();
 }
@@ -29,8 +34,21 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   bool _isLocating = false;
   bool _isSaving = false;
 
-  // 🎯 ARCHITECTURE DES RÔLES DÉFINITIVE : Traque du profil sélectionné à l'écran
+  // 🎯 ARCHITECTURE DES RÔLES : Traque du profil sélectionné à l'écran
   String _roleSaisi = 'gerant'; // Valeurs possibles : 'gerant' ou 'prospecteur'
+
+  // 🧽 NETTOYAGE CHIRURGICAL DES CASES DU FORMULAIRE
+  void _viderFormulaire() {
+    _nomBoutiqueController.clear();
+    _telephoneController.clear();
+    _marqueController.clear();
+    _pieceController.clear();
+    _adresseController.clear();
+    setState(() {
+      _latMagasin = null;
+      _lngMagasin = null;
+    });
+  }
 
   // 🧠 CAPTURE GPS DE SÉCURITÉ DE LA BOUTIQUE AVEC TIMEOUT IMMUNE
   Future<void> _capturerPositionMagasin() async {
@@ -45,7 +63,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         return;
       }
 
-      // On accorde un maximum de 3 secondes à la puce pour accrocher le satellite
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 3), // 👈 FILET DE SÉCURITÉ ANTI-FREEZE
@@ -115,15 +132,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         setState(() => _isSaving = false);
         
         if (_roleSaisi == 'prospecteur') {
-          _nomBoutiqueController.clear();
-          _telephoneController.clear();
-          _marqueController.clear();
-          _pieceController.clear();
-          _adresseController.clear();
-          setState(() {
-            _latMagasin = null;
-            _lngMagasin = null;
-          });
+          _viderFormulaire(); // 🧽 Purge immédiate pour l'agent
           _afficherMessage("🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !", Colors.indigo);
         } else {
           _afficherDialogueExamen(nom);
@@ -172,7 +181,6 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
       await prefs.setString('swintel_role', 'gerant');
 
       if (statut == 'certifie') {
-        // Enregistrement de session pour court-circuiter définitivement l'écran jaune au prochain démarrage
         await prefs.setString('telephone_local', tel);
         await prefs.setString('nom_magasin_local', nom);
 
@@ -214,7 +222,10 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _viderFormulaire(); // 👈 RECTIFICATION : On purge tout au clic sur le bouton "Compris" !
+            },
             child: const Text("COMPRIS", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
           )
         ],
@@ -255,108 +266,85 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
           child: const Text(
             '🔥 SWINTEL - ACTIVATION DU RÉSEAU',
             style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
           ),
         ),
         backgroundColor: Colors.amber,
         centerTitle: true,
-        automaticallyImplyLeading:
-            false, // 🎯 Écran d'accueil obligatoire, pas de retour en arrière !
+        automaticallyImplyLeading: false, // Écran obligatoire
       ),
       body: _isSaving
           ? const Center(child: CircularProgressIndicator(color: Colors.amber))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0), // 👈 AÉRATION : Marges réduites
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // En-tête d'accueil du Goudron
+                  // En-tête compacté pour gagner de la place sur le A10
                   Card(
-                    color: Colors.amber.withOpacity(0.1),
+                    color: Colors.amber.withOpacity(0.08),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: Colors.amber, width: 1.5),
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Colors.amber, width: 1),
                     ),
                     child: const Padding(
-                      padding: EdgeInsets.all(15.0),
+                      padding: EdgeInsets.all(10.0), // 👈 Plus fin
                       child: Text(
-                        "Bienvenue sur l'APK officielle SWINTEL. Sélectionnez votre profil puis enregistrez la boutique.",
+                        "Enregistrez votre boutique ou connectez-vous pour recevoir les alertes de Camp Yabassi.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10), // 👈 Espacement réduit
 
-                  // 🎯 L'INTERFACE DÉFINITIVE DE SÉLECTION DES RÔLES
-                  const Text(
-                    "Choisissez votre profil d'utilisation :",
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey),
-                  ),
-                  const SizedBox(height: 8),
+                  // 🎯 LE RETOUR DU SÉLECTEUR DE RÔLE HAUTE VISIBILITÉ
                   Row(
                     children: [
-                      // Bouton Profil Gérant Independant
                       Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              setState(() => _roleSaisi = 'gerant'),
-                          icon: const Icon(Icons.store_mall_directory),
-                          label: const Text("GÉRANT"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _roleSaisi == 'gerant'
-                                ? Colors.amber
-                                : Colors.grey,
-                            foregroundColor: _roleSaisi == 'gerant'
-                                ? Colors.black
-                                : Colors.grey,
-                            elevation: _roleSaisi == 'gerant' ? 4 : 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                        child: OutlinedButton.icon(
+                          onPressed: () => setState(() => _roleSaisi = 'gerant'),
+                          icon: Icon(Icons.store_mall_directory, color: _roleSaisi == 'gerant' ? Colors.black : Colors.grey),
+                          label: const Text("PROFIL GÉRANT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _roleSaisi == 'gerant' ? Colors.amber : Colors.white,
+                            foregroundColor: _roleSaisi == 'gerant' ? Colors.black : Colors.grey[600],
+                            side: BorderSide(color: _roleSaisi == 'gerant' ? Colors.orange : Colors.grey, width: 2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      // Bouton Profil Agent / Prospecteur de Flotte
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              setState(() => _roleSaisi = 'prospecteur'),
-                          icon: const Icon(Icons.person_search),
-                          label: const Text("AGENT"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _roleSaisi == 'prospecteur'
-                                ? Colors.indigo
-                                : Colors.grey,
-                            foregroundColor: _roleSaisi == 'prospecteur'
-                                ? Colors.white
-                                : Colors.grey,
-                            elevation: _roleSaisi == 'prospecteur' ? 4 : 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                        child: OutlinedButton.icon(
+                          onPressed: () => setState(() => _roleSaisi = 'prospecteur'),
+                          icon: Icon(Icons.person_search, color: _roleSaisi == 'prospecteur' ? Colors.white : Colors.grey),
+                          label: const Text("PROFIL AGENT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _roleSaisi == 'prospecteur' ? Colors.indigo : Colors.white,
+                            foregroundColor: _roleSaisi == 'prospecteur' ? Colors.white : Colors.grey[600],
+                            side: BorderSide(color: _roleSaisi == 'prospecteur' ? Colors.darkBlue : Colors.grey, width: 2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 25),
-                  // FORMULAIRE CHIRURGICAL D'IDENTITÉ
+                  const SizedBox(height: 15),
+
+                  // FORMULAIRE D'IDENTITÉ
                   TextField(
                     controller: _nomBoutiqueController,
                     decoration: const InputDecoration(
                       labelText: 'Nom de la Boutique *',
                       prefixIcon: Icon(Icons.store, color: Colors.orange),
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
+                  // 🎯 REPOSITIONNEMENT ERGONOMIQUE DU BLOC TÉLÉPHONE + RECONNEXION
                   TextField(
                     controller: _telephoneController,
                     keyboardType: TextInputType.phone,
@@ -364,21 +352,41 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                       labelText: 'Numéro de Téléphone (Identifiant) *',
                       prefixIcon: Icon(Icons.phone, color: Colors.orange),
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 5), // 👈 Collé au champ !
+                  
+                  // 🎯 LA DOUANE RECONDUITE : Le lien bleu s'implante juste ici !
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _connexionMagasinExistant,
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
+                      child: const Text(
+                        "Déjà inscrit ? Connecter mon poste au réseau",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
 
                   TextField(
                     controller: _marqueController,
                     decoration: const InputDecoration(
                       labelText: 'Vos Marques (Séparées par des virgules) *',
                       hintText: 'Ex: Toyota, Range Rover, Mercedes',
-                      prefixIcon:
-                          Icon(Icons.directions_car, color: Colors.orange),
+                      prefixIcon: Icon(Icons.directions_car, color: Colors.orange),
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
 
                   TextField(
                     controller: _pieceController,
@@ -387,86 +395,64 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                       hintText: 'Ex: Amortisseur, Cardan, Boite, Phare',
                       prefixIcon: Icon(Icons.build, color: Colors.orange),
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                     ),
                   ),
+                  const SizedBox(height: 10),
 
-                  const SizedBox(height: 15),
                   TextField(
                     controller: _adresseController,
                     decoration: const InputDecoration(
                       labelText: 'Localisation / Adresse (Optionnel)',
                       prefixIcon: Icon(Icons.map, color: Colors.orange),
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                     ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 15),
 
-                  // 📍 BOUTON DE CAPTURE GPS DE LA BOUTIQUE
+                  // 📍 BOUTON DE CAPTURE GPS COMPACTÉ
                   ElevatedButton.icon(
                     onPressed: _isLocating ? null : _capturerPositionMagasin,
                     icon: _isLocating
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.location_on),
-                    label: Text(_isLocating
-                        ? 'Recherche Satellite...'
-                        : 'LIER MA POSITION GPS'),
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.location_on, size: 18),
+                    label: Text(_isLocating ? 'Recherche Satellite...' : 'LIER MA POSITION GPS', style: const TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueGrey,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
 
                   // Témoin visuel des coordonnées GPS
                   if (_latMagasin != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
                     Text(
-                      "📍 Coordonnées figées : Lat ${_latMagasin!.toStringAsFixed(4)}, Lng ${_lngMagasin!.toStringAsFixed(4)}",
+                      "📍 Coordonnées : [${_latMagasin!.toStringAsFixed(4)}, ${_lngMagasin!.toStringAsFixed(4)}]",
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12),
+                      style: const TextStyle(color: Colors.green,超fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ],
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
 
-                  // 🚀 LE GRAND LEVIER : BOUTON D'ACTIVATION ET DE COMMANDE DU RÉSEAU
+                  // 🚀 LE GRAND LEVIER DE FLOTTE
                   ElevatedButton(
                     onPressed: _activerMonMagasin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text(
                       '🦾 ACTIVER MON MAGASIN & ENTRER EN FLOTTE',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 🎯 DEUXIÈME DOUANE : Actionneur pour les 35 anciens gérants déjà certifiés
-                  TextButton(
-                    onPressed: _connexionMagasinExistant,
-                    child: const Text(
-                      "Déjà inscrit ? Connecter mon poste au réseau",
-                      style: TextStyle(
-                        color: Colors.blueGrey,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
