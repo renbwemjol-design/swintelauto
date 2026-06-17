@@ -136,8 +136,8 @@ class _EcranCreerAlerteState extends State<EcranCreerAlerte> {
         'statut_alerte': 'en_attente',
         'marque_concernee': marqueExtraite,
         'piece_concernee': pieceExtraite,
-        'lat_emetteur': latEmetteur, // 👈 PUSH LA POSITION GPS ICI D'AUTORITÉ !
-        'lng_emetteur': lngEmetteur,
+      //  'lat_emetteur': latEmetteur, // 👈 PUSH LA POSITION GPS ICI D'AUTORITÉ !
+      //  'lng_emetteur': lngEmetteur,
       });
 
       if (mounted) {
