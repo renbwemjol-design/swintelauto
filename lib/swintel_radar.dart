@@ -1,14 +1,13 @@
 import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
-import 'dart:math'
-    as math; // 👈 1. L'IMPORTATION GÉOSPATIALE CORRIGÉE ET POSITIONNÉE ICI !
+import 'dart:math' as math; // 👈 L'IMPORTATION GÉOSPATIALE VECTORISÉE
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Indispensable pour injecter les bips physiques
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vibration/vibration.dart';
+import 'package:audioplayers/audioplayers.dart'; // 🚀 LE NOUVEAU LEVIER ACOUSTIQUE DIRECT
 import 'dashboard.dart';
 import 'alerte_flash_vendeur.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Le gérant des canaux
-import 'main.dart'; // Crucial pour l'instance du plugin
+import 'main.dart';
 
 class SwintelRadarGate extends StatefulWidget {
   final String idUtilisateur;
@@ -27,29 +26,29 @@ class SwintelRadarGate extends StatefulWidget {
 class _SwintelRadarGateState extends State<SwintelRadarGate> {
   final SupabaseClient _supabase = Supabase.instance.client;
   StreamSubscription? _radarSubscription; // 👈 Filet de sécurité asynchrone
+  final AudioPlayer _audioPlayer =
+      AudioPlayer(); // 🔊 INSTANCE UNIQUE POUR L'ACADÉMIE
 
   @override
   void initState() {
     super.initState();
+    // 🚀 NETTOYAGE EN LIGNE DROITE : Zéro paramètre complexe, Gradle passe au vert d'autorité !
     _allumerRadarDeFlotte();
   }
 
   // 🧠 FONCTION MATHÉMATIQUE DE HAVERSINE : Calcule la distance exacte en kilomètres entre deux points GPS
   double _calculerDistanceHaversine(
       double lat1, double lng1, double lat2, double lng2) {
-    const double rayonTerre = 6371.0; // Rayon moyen de la Terre en kilomètres
-
+    const double rayonTerre = 6371.0;
     double dLat = (lat2 - lat1) * math.pi / 180.0;
     double dLng = (lng2 - lng1) * math.pi / 180.0;
-
     double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(lat1 * math.pi / 180.0) *
             math.cos(lat2 * math.pi / 180.0) *
             math.sin(dLng / 2) *
             math.sin(dLng / 2);
-
     double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return rayonTerre * c; // Retourne la distance en kilomètres
+    return rayonTerre * c;
   }
 
   void _allumerRadarDeFlotte() {
@@ -71,19 +70,27 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String marqueRecherche = alerte['marque_concernee'] ?? '';
           final String pieceRecherche = alerte['piece_concernee'] ?? '';
 
-          // Coordonnées GPS de l'émetteur G1 (Lues en base ou repli Camp Yabassi)
-          final double latG1 = alerte['lat'] ?? 4.0510;
-          final double lngG1 = alerte['lng'] ?? 9.7679;
-
           if (statutAlerte != 'en_attente') return;
-        //   if (demandeurId == widget.idUtilisateur)
-          // return; // Anti-auto-vibration
+          // if (demandeurId == widget.idUtilisateur) return; // Anti-auto-vibration gelé pour le laboratoire
 
           try {
             // ----------------------------------------------------------------------
-            // 🏆 FILTRE 1 : CORRÉLATION SÉMANTIQUE DU STOCK DE LA BOUTIQUE ACTUELLE
+            // 🛰️ COUPLAGE GÉOMÉTRIQUE : Extraction de la position FIXE de l'émetteur G1 depuis Magasins
             // ----------------------------------------------------------------------
-            // Le téléphone va interroger la table Magasins pour vérifier ses propres spécialités
+            final emetteurData = await _supabase
+                .from('Magasins')
+                .select('lat, lng')
+                .eq('telephone', demandeurId)
+                .maybeSingle();
+
+            final double latG1 =
+                (emetteurData?['lat'] as num?)?.toDouble() ?? 4.0510;
+            final double lngG1 =
+                (emetteurData?['lng'] as num?)?.toDouble() ?? 9.7679;
+
+            // ----------------------------------------------------------------------
+            // 🏆 FILTRE 1 : CORRÉLATION SÉMANTIQUE DU STOCK DE LA BOUTIQUE ACTUELLE (RÉCEPTEUR)
+            // ----------------------------------------------------------------------
             final boutiqueData = await _supabase
                 .from('Magasins')
                 .select('specialite_marque, specialite_type, lat, lng')
@@ -99,7 +106,6 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             final double maLng =
                 (boutiqueData['lng'] as num?)?.toDouble() ?? 0.0;
 
-            // Logique de filtrage sémantique tolérante aux minuscules/majuscules
             bool marqueCompatible = maMarque
                     .toLowerCase()
                     .contains(marqueRecherche.toLowerCase()) ||
@@ -109,22 +115,19 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                     .contains(pieceRecherche.toLowerCase()) ||
                 pieceRecherche.isEmpty;
 
-            // Si le magasin n'a pas la spécialité demandée, on coupe instantanément le signal !
-            if (!marqueCompatible || !pieceCompatible) {
-              return; // 🛑 Boutique non qualifiée. Le téléphone reste totalement muet !
-            }
+            if (!marqueCompatible || !pieceCompatible) return;
 
             // ----------------------------------------------------------------------
-            // 🏆 FILTRE 2 : LE CALCUL GÉOSPATIAL (Formule de Haversine)
+            // 🏆 FILTRE 2 : LE CALCUL GÉOSPATIAL (Ancrage sur les Comptoirs Fixes)
             // ----------------------------------------------------------------------
             double distanceDuDeal =
                 _calculerDistanceHaversine(latG1, lngG1, maLat, maLng);
 
-            if (distanceDuDeal > 500.0) {
-              return; // 🛑 Trop loin du goudron de G1 (supérieur à 5 km) -> On coupe !
-            }
+            if (distanceDuDeal > 500.0)
+              return; // Barrière laboratoire élastique
+
             // ----------------------------------------------------------------------
-            // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET SURGIT !
+            // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET HURLE DE FORCE !
             // ----------------------------------------------------------------------
             if (mounted) {
               // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
@@ -135,35 +138,15 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
                 );
               }
 
-              // 🔊 ACTION 1.B : DÉCLENCHEMENT DE LA SIRÈNE "STYLE FACEBOOK"
+              // 🔊 ACTION 1.B : LE COURT-CIRCUIT AUDIO DIRECT DE RJ RECTIFIÉ DU LUNDI MIDI
               try {
-                const AndroidNotificationDetails androidNotificationDetails =
-                    AndroidNotificationDetails(
-                  'swintel_sirene_force',
-                  '🚨 SWINTEL - SIRENE D\'URGENCE',
-                  channelDescription: 'Canal d\'urgence prioritaire',
-                  importance: Importance.max,
-                  priority: Priority.high,
-                  playSound: true,
-                  sound: RawResourceAndroidNotificationSound('sirene'),
-                );
-
-                const NotificationDetails notificationDetails =
-                    NotificationDetails(
-                  android: androidNotificationDetails,
-                );
-
-                // Syntaxe 2026 : Chaque argument est nommé sans exception !
-                await flutterLocalNotificationsPlugin.show(
-                  id: idAlerte.hashCode,
-                  title: '🔥 MISSION FLASH SWINTEL !',
-                  body:
-                      'Une pièce compatible ($marqueRecherche) est recherchée à ${distanceDuDeal.toStringAsFixed(1)} km !',
-                  notificationDetails: notificationDetails,
-                );
-                print("📡 Signal sonore propulsé au canal Android !");
-              } catch (e) {
-                debugPrint("Hoquet sirène Facebook : $e");
+                await _audioPlayer.stop();
+                // Utilisation de la syntaxe de source certifiée v6
+                await _audioPlayer.play(AssetSource('sirene.ogg'));
+                print(
+                    "📡 Sirène d'urgence .ogg propulsée sur le haut-parleur natif !");
+              } catch (audioError) {
+                debugPrint("Hoquet acoustique direct : $audioError");
               }
 
               // 🚀 ACTION 2 : L'écran de mission Flash surgit de force sur les pixels !
@@ -180,7 +163,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
               );
             }
           } catch (e) {
-            debugPrint("Hoquet filtres sémantiques : $e");
+            debugPrint("Hoquet critique filtres sémantiques/géospatiaux : $e");
           }
         });
   }
@@ -188,13 +171,13 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
   @override
   void dispose() {
     _radarSubscription
-        ?.cancel(); // 👈 Fermeture hermétique du robinet pour préserver la RAM
+        ?.cancel(); // 🧽 Fermeture hermétique du robinet pour préserver la RAM
+    _audioPlayer.dispose(); // 🧽 Libération du processeur audio
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Le radar tourne silencieusement en arrière-plan, mais affiche le Dashboard standard
     return DashboardScreen(idUtilisateur: widget.idUtilisateur);
   }
 }
