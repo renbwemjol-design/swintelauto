@@ -72,12 +72,12 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
           final String pieceRecherche = alerte['piece_concernee'] ?? '';
 
           // Coordonnées GPS de l'émetteur G1 (Lues en base ou repli Camp Yabassi)
-          final double latG1 = alerte['lat_emetteur'] ?? 4.0510;
-          final double lngG1 = alerte['lng_emetteur'] ?? 9.7679;
+          final double latG1 = alerte['lat'] ?? 4.0510;
+          final double lngG1 = alerte['lng'] ?? 9.7679;
 
           if (statutAlerte != 'en_attente') return;
-          if (demandeurId == widget.idUtilisateur)
-            return; // Anti-auto-vibration
+        //   if (demandeurId == widget.idUtilisateur)
+          // return; // Anti-auto-vibration
 
           try {
             // ----------------------------------------------------------------------
@@ -120,7 +120,7 @@ class _SwintelRadarGateState extends State<SwintelRadarGate> {
             double distanceDuDeal =
                 _calculerDistanceHaversine(latG1, lngG1, maLat, maLng);
 
-            if (distanceDuDeal > 5.0) {
+            if (distanceDuDeal > 500.0) {
               return; // 🛑 Trop loin du goudron de G1 (supérieur à 5 km) -> On coupe !
             }
             // ----------------------------------------------------------------------
