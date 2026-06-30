@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io'; // 🧠 INDISPENSABLE POUR MANIPULER LES FICHIERS PHYSIQUES NATIFS File
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:geolocator/geolocator.dart'; // 👈 IMPORTATION DU CAPTEUR SATELLITAIRE DE BASE
+import 'package:geolocator/geolocator.dart'; // 👈 CAPTEUR SATELLITAIRE DE BASE
 import 'package:shared_preferences/shared_preferences.dart'; // Pour figer la session locale
+import 'package:image_picker/image_picker.dart'; // 🚀 LE NOUVEAU LEVIER MULTIMÉDIA RECONNECTÉ
 import 'dashboard.dart';
 import 'ecran_admin.dart'; // 👈 POUR LE COMMUTATEUR DIRECTEUR SECRET
 
@@ -10,16 +12,12 @@ class EcranEnregistrementScreen extends StatefulWidget {
   const EcranEnregistrementScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
-  }
-
-  @override
   State<EcranEnregistrementScreen> createState() =>
       _EcranEnregistrementScreenState();
 }
 
 class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
+  // 🎯 SOUDURE RECALÉE !
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // 🪛 LES ENCRES DE TEXTE PROFESSIONNELLES
@@ -34,6 +32,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   bool _isLocating = false;
   bool _isSaving = false;
 
+  XFile? _imageFacade; // 👈 PISTON MULTIMÉDIA LOCAL EN RAM
+
   // 🎯 ARCHITECTURE DES RÔLES : Traque du profil sélectionné à l'écran
   String _roleSaisi = 'gerant'; // Valeurs possibles : 'gerant' ou 'prospecteur'
 
@@ -47,7 +47,23 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     setState(() {
       _latMagasin = null;
       _lngMagasin = null;
+      _imageFacade = null;
     });
+  }
+
+  // 📸 COMMANDE DE CAPTURE DE LA CAMÉRA NATIVE AVEC COMPRESSION À 50%
+  Future<void> _prendrePhotoFacade() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.camera, imageQuality: 50);
+
+    if (image != null) {
+      setState(() {
+        _imageFacade = image;
+      });
+      _afficherMessage(
+          "📸 Miniature de la façade figée / Photo captured !", Colors.green);
+    }
   }
 
   // 🧠 CAPTURE GPS DE SÉCURITÉ DE LA BOUTIQUE AVEC TIMEOUT IMMUNE
@@ -106,8 +122,23 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
     try {
       final double latitudeFinale = _latMagasin ?? 4.0510;
       final double longitudeFinale = _lngMagasin ?? 9.7679;
+      String? urlPhotoFinale;
 
-      // Incorporation Cloud au statut actif
+      // 🎯 PIPELINE APPAREIL PHOTO FAÇADE RÉINSTALLÉ : Envoi direct au Bucket public 'photos_magasins'
+      if (_imageFacade != null) {
+        final String nomFichier =
+            "facade_${tel}_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        final File fichierPhysique =
+            File(_imageFacade!.path); // Conversion en File native
+
+        await _supabase.storage
+            .from('photos_magasins')
+            .upload('public/$nomFichier', fichierPhysique);
+        urlPhotoFinale = _supabase.storage
+            .from('photos_magasins')
+            .getPublicUrl('public/$nomFichier');
+      }
+
       await _supabase.from('Magasins').insert({
         'nom': nom,
         'specialite_marque': marque,
@@ -116,6 +147,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         'adresse': adresse.isEmpty ? "Camp Yabassi, Douala" : adresse,
         'lat': latitudeFinale,
         'lng': longitudeFinale,
+        'image_url': urlPhotoFinale, // 👈 PIPELINE MULTIMÉDIA LIÉ !
         'statut': 'actif',
       });
 
@@ -132,9 +164,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
 
       if (mounted) {
         setState(() => _isSaving = false);
-
         if (_roleSaisi == 'prospecteur') {
-          _viderFormulaire(); // 🧽 Purge immédiate pour l'agent
+          _viderFormulaire();
           _afficherMessage(
               "🔄 Nettoyage ok. Prêt pour enrôler la boutique suivante !",
               Colors.indigo);
@@ -148,59 +179,47 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
         _afficherMessage(
             "🚨 Erreur d'activation : ${e.toString().split('\n').first}",
             Colors.red);
-        debugPrint("Détail crash enregistrement : $e");
       }
     }
   }
 
-  // 🎯 PASSERELLE ASSOCIEE : Reconnexion instantanée des 35 gérants déjà certifiés sur Supabase
+  // 🎯 PASSERELLE ASSOCIEE : Reconnexion instantanée des 35 gérants déjà certifiés
   Future<void> _connexionMagasinExistant() async {
     final String tel = _telephoneController.text.trim();
-
     if (tel.isEmpty) {
       _afficherMessage(
           "⚠️ Saisissez votre Numéro de Téléphone pour vous connecter",
           Colors.orange);
       return;
     }
-
     setState(() => _isSaving = true);
-
     try {
       final data = await _supabase
           .from('Magasins')
           .select('nom, statut')
           .eq('telephone', tel)
           .maybeSingle();
-
       setState(() => _isSaving = false);
-
       if (data == null) {
         _afficherMessage(
             "❌ Ce numéro n'est pas répertorié dans la flotte SWINTEL",
             Colors.red);
         return;
       }
-
       final String nom = data['nom'] ?? 'Magasin';
       final String statut = data['statut'] ?? 'actif';
-
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('swintel_role', 'gerant');
 
       if (statut == 'certifie') {
         await prefs.setString('telephone_local', tel);
         await prefs.setString('nom_magasin_local', nom);
-
         _afficherMessage("🎉 Bon retour au goudron, $nom !", Colors.green);
-
         if (mounted) {
           Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DashboardScreen(idUtilisateur: tel),
-            ),
-          );
+              context,
+              MaterialPageRoute(
+                  builder: (context) => DashboardScreen(idUtilisateur: tel)));
         }
       } else {
         if (mounted) _afficherDialogueExamen(nom);
@@ -234,7 +253,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _viderFormulaire(); // 👈 RECTIFICATION : On purge tout au clic sur le bouton "Compris" !
+              _viderFormulaire();
             },
             child: const Text("COMPRIS",
                 style: TextStyle(
@@ -257,57 +276,43 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
   }
 
   @override
-  void dispose() {
-    _nomBoutiqueController.dispose();
-    _telephoneController.dispose();
-    _marqueController.dispose();
-    _pieceController.dispose();
-    _adresseController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: GestureDetector(
           onLongPress: () {
-            // 🎯 INTERRUPTEUR TEXTUEL SECRET DU DIRECTEUR : Ouverture d'autorité !
             Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const EcranAdminSecret()),
-            );
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const EcranAdminSecret()));
           },
-          child: const Text(
-            '🔥 SWINTEL - ACTIVATION DU RÉSEAU',
-            style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
-          ),
+          child: const Text('🔥 SWINTEL - ACTIVATION DU RÉSEAU',
+              style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15)),
         ),
         backgroundColor: Colors.amber,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Écran obligatoire
+        automaticallyImplyLeading: false,
       ),
       body: _isSaving
           ? const Center(child: CircularProgressIndicator(color: Colors.amber))
           : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 12.0), // 👈 AÉRATION : Marges réduites
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // En-tête compacté pour gagner de la place sur le A10
                   Card(
                     color: Colors.amber.withOpacity(0.08),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.amber, width: 1),
-                    ),
+                        borderRadius: BorderRadius.circular(10),
+                        side: const BorderSide(color: Colors.amber, width: 1)),
                     child: const Padding(
-                      padding: EdgeInsets.all(10.0), // 👈 Plus fin
+                      padding: EdgeInsets.all(10.0),
                       child: Text(
                         "Enregistrez votre boutique ou connectez-vous pour recevoir les alertes de Camp Yabassi.",
                         textAlign: TextAlign.center,
@@ -318,9 +323,8 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10), // 👈 Espacement réduit
+                  const SizedBox(height: 10),
 
-                  // 🎯 LE RETOUR DU SÉLECTEUR DE RÔLE HAUTE VISIBILITÉ
                   Row(
                     children: [
                       Expanded(
@@ -340,7 +344,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                                 : Colors.white,
                             foregroundColor: _roleSaisi == 'gerant'
                                 ? Colors.black
-                                : Colors.grey[600],
+                                : Colors.grey,
                             side: BorderSide(
                                 color: _roleSaisi == 'gerant'
                                     ? Colors.orange
@@ -369,8 +373,7 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                                 : Colors.white,
                             foregroundColor: _roleSaisi == 'prospecteur'
                                 ? Colors.white
-                                : Colors.grey[600],
-                            // 🎯 RECTIFICATION DIRECTE : Alignement sur le dictionnaire de couleurs Flutter
+                                : Colors.grey,
                             side: BorderSide(
                                 color: _roleSaisi == 'prospecteur'
                                     ? Colors.indigo
@@ -385,33 +388,29 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // FORMULAIRE D'IDENTITÉ
                   TextField(
                     controller: _nomBoutiqueController,
                     decoration: const InputDecoration(
-                      labelText: 'Nom de la Boutique *',
-                      prefixIcon: Icon(Icons.store, color: Colors.orange),
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    ),
+                        labelText: 'Nom de la Boutique *',
+                        prefixIcon: Icon(Icons.store, color: Colors.orange),
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 10)),
                   ),
                   const SizedBox(height: 10),
-                  // 🎯 REPOSITIONNEMENT ERGONOMIQUE DU BLOC TÉLÉPHONE + RECONNEXION
+
                   TextField(
                     controller: _telephoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Numéro de Téléphone (Identifiant) *',
-                      prefixIcon: Icon(Icons.phone, color: Colors.orange),
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    ),
+                        labelText: 'Numéro de Téléphone (Identifiant) *',
+                        prefixIcon: Icon(Icons.phone, color: Colors.orange),
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 10)),
                   ),
-                  const SizedBox(height: 5), // 👈 Collé au champ !
+                  const SizedBox(height: 5),
 
-                  // 🎯 LA DOUANE RECONDUITE : Le lien bleu s'implante juste ici !
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(
@@ -420,14 +419,12 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 30)),
                       child: const Text(
-                        "Déjà inscrit ? Connecter mon poste au réseau",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                          fontSize: 12,
-                        ),
-                      ),
+                          "Déjà inscrit ? Connecter mon poste au réseau",
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                              fontSize: 12)),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -435,41 +432,79 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                   TextField(
                     controller: _marqueController,
                     decoration: const InputDecoration(
-                      labelText: 'Vos Marques (Séparées par des virgules) *',
-                      hintText: 'Ex: Toyota, Range Rover, Mercedes',
-                      prefixIcon:
-                          Icon(Icons.directions_car, color: Colors.orange),
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    ),
+                        labelText: 'Vos Marques (Séparées par des virgules) *',
+                        hintText: 'Ex: Toyota, Range Rover, Mercedes',
+                        prefixIcon:
+                            Icon(Icons.directions_car, color: Colors.orange),
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 10)),
                   ),
                   const SizedBox(height: 10),
 
                   TextField(
                     controller: _pieceController,
                     decoration: const InputDecoration(
-                      labelText: 'Vos Pièces (Séparées par des virgules) *',
-                      hintText: 'Ex: Amortisseur, Cardan, Boite, Phare',
-                      prefixIcon: Icon(Icons.build, color: Colors.orange),
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    ),
+                        labelText: 'Vos Pièces (Séparées par des virgules) *',
+                        hintText: 'Ex: Amortisseur, Cardan, Boite, Phare',
+                        prefixIcon: Icon(Icons.build, color: Colors.orange),
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 10)),
                   ),
                   const SizedBox(height: 10),
 
                   TextField(
                     controller: _adresseController,
                     decoration: const InputDecoration(
-                      labelText: 'Localisation / Adresse (Optionnel)',
-                      prefixIcon: Icon(Icons.map, color: Colors.orange),
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    ),
+                        labelText: 'Localisation / Adresse (Optionnel)',
+                        prefixIcon: Icon(Icons.map, color: Colors.orange),
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 10)),
                   ),
                   const SizedBox(height: 15),
+                  // 📸 CONTENEUR VISUEL DE LA MINIATURE MULTIMÉDIA APERÇU RE-INTÉGRÉ
+                  if (_imageFacade != null) ...[
+                    Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green, width: 2),
+                        image: DecorationImage(
+                          image: FileImage(File(_imageFacade!.path)),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // 📸 LE BOUTON D'INJECTION DE L'APPAREIL PHOTO FAÇADE
+                  ElevatedButton.icon(
+                    onPressed: _prendrePhotoFacade,
+                    icon: Icon(
+                        _imageFacade == null
+                            ? Icons.camera_alt
+                            : Icons.check_circle,
+                        size: 18),
+                    label: Text(
+                      _imageFacade == null
+                          ? 'PRENDRE PHOTO FAÇADE *'
+                          : '✅ FAÇADE CAPTURÉE',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          _imageFacade == null ? Colors.blueGrey : Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
 
                   // 📍 BOUTON DE CAPTURE GPS COMPACTÉ
                   ElevatedButton.icon(
@@ -495,13 +530,11 @@ class _EcranEnregistrementScreenState extends State<EcranEnregistrementScreen> {
                     ),
                   ),
 
-                  // Témoin visuel des coordonnées GPS
                   if (_latMagasin != null) ...[
                     const SizedBox(height: 5),
                     Text(
                       "📍 Coordonnées : [${_latMagasin!.toStringAsFixed(4)}, ${_lngMagasin!.toStringAsFixed(4)}]",
                       textAlign: TextAlign.center,
-                      // 🎯 RECTIFICATION DIRECTE : Éjection du caractère parasite 超 !
                       style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
