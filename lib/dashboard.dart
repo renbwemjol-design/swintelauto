@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'creer_alerte.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 🧠 Pour purger la session locale
+import 'ecran_enregistrement.dart';
+import 'swintel_radar.dart';
 import 'hub_alertes.dart';
-import 'moteur_courtage.dart';
-import 'alerte_flash_vendeur.dart'; // 👈 On importe notre nouvel écran d'urgence flash
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'creer_alerte.dart';
+import 'ecran_admin.dart'; // 🛡️ Accès souverain dissimulé
 
 class DashboardScreen extends StatefulWidget {
-  final String idUtilisateur;
+  final String idUtilisateur; // Le numéro WhatsApp du gérant connecté
+
   const DashboardScreen({super.key, required this.idUtilisateur});
 
   @override
@@ -15,264 +16,164 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String _nomBoutiqueLocale =
-      "..."; // 👈 La variable d'ancrage visuel est ici !
+  String _nomBoutiqueLocale = "Chargement...";
 
   @override
   void initState() {
     super.initState();
-    _chargerNomBoutiqueLocale(); // 👈 On réveille la mémoire flash au démarrage
+    _extraireIdentiteBoutique();
   }
 
-  Future<void> _chargerNomBoutiqueLocale() async {
+  // 📡 CACHE LOCAL DIRECT : Extraction de la mémoire flash pour l'affichage immédiat
+  Future<void> _extraireIdentiteBoutique() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      // Lit le vrai nom ou prend l'ID par défaut
-      _nomBoutiqueLocale =
-          prefs.getString('nom_magasin_local') ?? widget.idUtilisateur;
+      _nomBoutiqueLocale = prefs.getString('nom_magasin') ?? "Boutique Active";
     });
+  }
+
+  // 🧽 PURGE DE PROTECTION : Déconnexion sécurisée et nettoyage de la RAM flash
+  Future<void> _executerDeconnexion() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Destruction des clés d'identités anti-fraude
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => const EcranEnregistrementScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String codeLangue = Localizations.localeOf(context).languageCode;
-    final bool isEnglish = codeLangue == 'en';
+    final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            isEnglish
-                ? 'SWINTEL - $_nomBoutiqueLocale'
-                : 'SWINTEL - $_nomBoutiqueLocale', // 👈 Le vrai nom surgit ici !
-            style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.amber,
-        centerTitle: true,
-      ),
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        // 🔒 INTERCEPTEUR DE PRIVILÈGES MASQUÉ (UE 207) : Un appui long secret sur le titre ouvre le portail admin
+        title: GestureDetector(
+          onLongPress: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const EcranAdminScreen()));
+          },
+          child: Text(
+            isEnglish
+                ? 'SWINTEL PANEL - $_nomBoutiqueLocale'
+                : 'PANNEAU SWINTEL - $_nomBoutiqueLocale',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
+          ),
+        ),
+        backgroundColor: Colors.amber,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.red),
+            onPressed: _executerDeconnexion,
+          )
+        ],
+      ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 24.0,
-            vertical: 10.0), // Légère réduction pour faire tenir 4 boutons
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Logo Card
-            const Card(
-              color: Colors.amber,
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Column(
-                  children: [
-                    Icon(Icons.directions_car, size: 35, color: Colors.black),
-                    SizedBox(height: 5),
-                    Text('RÉSEAU PIÈCES AFRIQUE',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              isEnglish
-                  ? 'CHOOSE YOUR ACTION / CHOISISSEZ'
-                  : 'CHOISISSEZ VOTRE ACTION / CHOOSE',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 10),
-
-            // 📡 BOUTON 1 : ÉMISSION ALERTE
+            // 📐 BLOC ADAPTATIF 1 : Bouton d'urgence - Émettre Alerte (G1)
             Expanded(
-              child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            EcranCreerAlerte(idGerant: widget.idUtilisateur))),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.radar, size: 30),
-                    const SizedBox(height: 5),
-                    Text(isEnglish ? 'SEND AN ALERT' : 'ÉMETTRE UNE ALERTE',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text(
-                        isEnglish
-                            ? 'Record voice (WhatsApp style)'
-                            : 'Enregistrer un vocal (Style WhatsApp)',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white70)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // 📥 BOUTON 2 : HUB RECEPTION (RACCORDEMENT DE FORCE 2026)
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HubAlertesScreen(
-                        idUtilisateur: widget.idUtilisateur,
-                        nomMagasinLocal: _nomBoutiqueLocale, // 👈 PARFAITEMENT INJECTÉ ICI !
-                      ),
-                    )), 
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // 👈 Sécurité d'affichage pour le rendu
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.forum_outlined, size: 30),
-                    const SizedBox(height: 5),
-                    Text(isEnglish ? 'OPEN ALERT HUB' : 'OUVRIR LE FLUX DIRECT',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text(
-                        isEnglish
-                            ? 'Check live requests'
-                            : 'Consulter le flux en direct',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white70)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // 🧮 BOUTON 3 : SIMULATION DU MOTEUR DE COURTAGE
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MoteurCourtageScreen(
-                        marqueRecherche: "Toyota",
-                        typeRecherche: "Amortisseur",
-                        latG1: 4.0510,
-                        lngG1: 9.7679,
-                        idUtilisateur: widget
-                            .idUtilisateur, // 👈 AJOUTE CETTE LIGNE D'AUTORITÉ ICI !
-                      ),
+              child: Card(
+                color: Colors.orange.shade100,
+                elevation: 4,
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => EcranCreerAlerte(
+                              idGerant: widget.idUtilisateur))),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add_alert,
+                            size: 50, color: Colors.orange),
+                        const SizedBox(height: 10),
+                        Text(
+                            isEnglish
+                                ? "BROADCAST ALERT (G1)"
+                                : "ÉMETTRE ALERTE (G1)",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.calculate, size: 30),
-                    const SizedBox(height: 5),
-                    Text(
-                        isEnglish
-                            ? 'SIMULATE BROKERAGE'
-                            : 'SIMULER LE COURTAGE',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text(
-                        isEnglish
-                            ? 'Test math match & distance'
-                            : 'Tester le calcul et les distances',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white70)),
-                  ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
-            // 🔥 BOUTON 4 : SIMULER LA RÉCEPTION FLASH AVEC LE VRAI DERNIER VOCAL
+            // 📐 BLOC ADAPTATIF 2 : Bouton Radar Passif de Flotte (G2)
             Expanded(
-              child: ElevatedButton(
-                onPressed: () async {
-                  try {
-                    final derniereAlerte = await Supabase.instance.client
-                        .from('Alertes')
-                        .select('id, audio_url')
-                        .order('created_at', ascending: false)
-                        .limit(1)
-                        .single();
+              child: Card(
+                color: Colors.blue.shade100,
+                elevation: 4,
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SwintelRadarScreen(
+                              idUtilisateur: widget.idUtilisateur))),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.radar, size: 50, color: Colors.blue),
+                        const SizedBox(height: 10),
+                        Text(
+                            isEnglish
+                                ? "ACTIVATE RADAR (G2)"
+                                : "ACTIVER LE RADAR (G2)",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
 
-                    final dynamic idAlerteReel = derniereAlerte['id'];
-                    final String audioUrlReel =
-                        derniereAlerte['audio_url'] ?? '';
-
-                    if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AlerteFlashVendeurScreen(
-                            idAlerte: idAlerteReel,
-                            idVendeur: widget.idUtilisateur,
-                            nomMagasin: _nomBoutiqueLocale,
-                            audioUrl: audioUrlReel,
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content:
-                                Text("🚨 Aucune alerte trouvée en base : $e"),
-                            backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.flash_on, size: 30),
-                    const SizedBox(height: 5),
-                    Text(
-                        isEnglish
-                            ? 'SIMULATE FLASH RECEPTION'
-                            : "SIMULER LA RÉCEPTION FLASH",
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text(
-                        isEnglish
-                            ? 'Test with real last voice request'
-                            : 'Tester avec le vrai dernier vocal',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white70)),
-                  ],
+            // 📐 BLOC ADAPTATIF 3 : Bouton d'accès au Hub Réactif Tricolore
+            Expanded(
+              child: Card(
+                color: Colors.amber.shade100,
+                elevation: 4,
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => HubAlertesScreen(
+                              idUtilisateur: widget.idUtilisateur,
+                              nomMagasinLocal: _nomBoutiqueLocale))),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.layers,
+                            size: 50,
+                            color: Colors
+                                .amber), // 🛠️ CERTIFIÉ : Remplacement de l'icône de labo cassée
+                        const SizedBox(height: 10),
+                        Text(
+                            isEnglish
+                                ? "OPEN LIVE HUB"
+                                : "OUVRIR LE FLUX DIRECT",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

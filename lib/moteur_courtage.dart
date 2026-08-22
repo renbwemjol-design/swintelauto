@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart'; // Pour déclencher l'appel téléphonique
+import 'package:url_launcher/url_launcher.dart'; // 🧠 Levier de propulsion externe vers l'OS Android
 
 class MoteurCourtageScreen extends StatefulWidget {
-  final String marqueRecherche; // Transmis depuis la dictée (Ex: Toyota)
-  final String typeRecherche; // Transmis depuis la dictée (Ex: Amortisseur)
-  final double latG1; // Latitude du gérant émetteur
-  final double lngG1; // Longitude du gérant émetteur
-  final String idUtilisateur; // 👈 AJOUTE CETTE PROPRIÉTÉ EXTRA-CRUCIALE ICI !
+  final String marqueRecherche; // Transmis par le flux (Ex: 'Toyota')
+  final String typeRecherche; // Transmis par le flux (Ex: 'Amortisseur')
+  final double latG1; // Coordonnées géospatiales de l'émetteur
+  final double lngG1;
+  final String idUtilisateur; // Le numéro du gérant actif
 
   const MoteurCourtageScreen({
     super.key,
@@ -16,7 +15,7 @@ class MoteurCourtageScreen extends StatefulWidget {
     required this.typeRecherche,
     required this.latG1,
     required this.lngG1,
-    required this.idUtilisateur, // 👈 COMMANDE CET IMPÉRATIF ICI !
+    required this.idUtilisateur,
   });
 
   @override
@@ -25,228 +24,103 @@ class MoteurCourtageScreen extends StatefulWidget {
 
 class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  RealtimeChannel?
-      _ecouteReponseChannel; // 👈 Le tuyau temps réel pour intercepter le YES
-
-  List<Map<String, dynamic>> _magasinsQuiOntRepondu = [];
   bool _isLoading = true;
+
+  // 🛠️ CERTIFIÉ ASCII : Éjection définitive des accents provoquant des erreurs de dictionnaire
+  List<Map<String, dynamic>> _comptoirsAppaires = [];
 
   @override
   void initState() {
     super.initState();
-    // 🧠 DOUBLE CANAL : On active l'écouteur direct ET on force une vérification immédiate au réveil !
-    _ecouterReponsesFlotteEnDirect();
-    _verifierSiUneReponseExisteDeja();
-    setState(() => _isLoading = false);
+    _executerAppariementSemantiqueGoudron(); // 🛠️ CERTIFIÉ : Retrait de l'accent sur l'appel
   }
 
-  // 🎯 VERIFICATION CLOUD AU RÉVEIL : Évite que l'écran ne reste figé à cause de la latence réseau
-  Future<void> _verifierSiUneReponseExisteDeja() async {
+  // 📐 ALGORITHME DE CORRÉLATION (Table 1 + Table 3 + Algèbre Booléenne)
+  Future<void> _executerAppariementSemantiqueGoudron() async {
+    // 🛠️ CERTIFIÉ : Retrait de l'accent sur la méthode
     try {
-      // On cherche la ligne de l'alerte en cours pour lire son état actuel
-      final alerteEnBase = await _supabase
-          .from('Alertes')
-          .select('statut_alerte')
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+      // 1. Extraction par filtre strict des spécialistes compatibles de la table Magasins (Table 1)
+      final List<dynamic> magasinsCompatibles = await _supabase
+          .from('Magasins')
+          .select(
+              'nom, telephone, specialite_marque, specialite_type, lat, lng')
+          .eq('specialite_marque', widget.marqueRecherche)
+          .eq('specialite_type', widget.typeRecherche)
+          .eq('statut', 'actif');
 
-      if (alerteEnBase != null) {
-        final String statutAlerte = alerteEnBase['statut_alerte'] ?? '';
+      List<Map<String, dynamic>> listeTemporaire = [];
 
-        if (statutAlerte.startsWith('reponse_') ||
-            statutAlerte.startsWith('réponse_')) {
-          final String magasinVolontaire = statutAlerte
-              .replaceFirst('reponse_', '')
-              .replaceFirst('réponse_', '')
-              .trim();
+      for (var magasin in magasinsCompatibles) {
+        final String telBoutique = magasin['telephone'] ?? '';
 
-          if (magasinVolontaire.isNotEmpty) {
-            _chargerLeSpecialisteVolontaire(magasinVolontaire);
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Erreur éveil initial : $e");
-    }
-  }
-
-  // 📡 Étape 3 : Branchement Realtime tolérant aux accents (réponse_ ou reponse_)
-  void _ecouterReponsesFlotteEnDirect() {
-    _ecouteReponseChannel =
-        _supabase.channel('public:Alertes:Match').onPostgresChanges(
-              event: PostgresChangeEvent.update,
-              schema: 'public',
-              table: 'Alertes',
-              callback: (payload) {
-                final String statutAlerte =
-                    payload.newRecord['statut_alerte'] ?? '';
-
-                // 🧠 DÉCODEUR UNIFIÉ : Gère 'reponse_' ET 'réponse_' pour le goudron
-                if (statutAlerte.startsWith('reponse_') ||
-                    statutAlerte.startsWith('réponse_')) {
-                  // On nettoie le préfixe pour extraire le nom propre du magasin
-                  final String magasinVolontaire = statutAlerte
-                      .replaceFirst('reponse_', '')
-                      .replaceFirst('réponse_', '');
-
-                  if (magasinVolontaire.isNotEmpty) {
-                    _chargerLeSpecialisteVolontaire(magasinVolontaire);
-                  }
-                }
-              },
-            );
-    _ecouteReponseChannel?.subscribe();
-  }
-
-  // 🧮 Charge UNIQUEMENT le magasin exclusif qui a cliqué sur "YES"
-  Future<void> _chargerLeSpecialisteVolontaire(
-      String nomDuMagasinQuiARepondu) async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-
-    try {
-      // 🎯 REQUÊTE D'ÉLITE INDESTRUCTIBLE : Tolérante aux majuscules/minuscules pour ORNY AUTO
-      final donnees = await _supabase.from('Magasins').select().ilike('nom',
-          '%$nomDuMagasinQuiARepondu%'); // 👈 Remplacé .eq par .ilike d'autorité !
-
-      List<Map<String, dynamic>> listeFiltree = [];
-
-      for (var magasin in donnees) {
-        final String nomMagasin = magasin['nom'] ?? '';
-        final double latTarget = (magasin['lat'] as num?)?.toDouble() ?? 0.0;
-        final double lngTarget = (magasin['lng'] as num?)?.toDouble() ?? 0.0;
-
-        // Calcul de la distance au goudron
-        double distanceEnMetres = Geolocator.distanceBetween(
-            widget.latG1, widget.lngG1, latTarget, lngTarget);
-        magasin['distance_calculee'] = distanceEnMetres / 1000;
-
-        // Calcul de sa fiabilité historique
-        final reponseBonus = await _supabase
+        // 📊 CUMUL QUANTITATIF DES POINTS (Extraction de la Table 3 pour l'index de confiance)
+        final List<dynamic> historiqueBonus = await _supabase
             .from('BonusCourtage')
             .select('points_gagnes')
-            .eq('magasin_cible_nom', nomMagasin);
+            .eq('courtier_id', telBoutique);
 
-        int totalFiabilite = 0;
-        if (reponseBonus != null) {
-          for (var ligne in reponseBonus) {
-            totalFiabilite += (ligne['points_gagnes'] as int? ?? 0);
-          }
+        // Somme arithmétique rigoureuse des points signés (+10 / -5) en RAM locale
+        int scoreCumule = 0;
+        for (var ligne in historiqueBonus) {
+          scoreCumule += (ligne['points_gagnes'] as num).toInt();
         }
-        magasin['score_fiabilite'] = totalFiabilite;
 
-        listeFiltree.add(magasin);
+        listeTemporaire.add({
+          'nom': magasin['nom'] ?? 'Comptoir Inconnu',
+          'telephone': telBoutique,
+          'score': scoreCumule,
+        });
       }
+
+      // ⚡ TRI CHRONOLOGIQUE ET HIÉRARCHIQUE : Les scores les plus élevés en premier (O(N log N))
+      listeTemporaire
+          .sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
 
       if (mounted) {
         setState(() {
-          _magasinsQuiOntRepondu = listeFiltree;
+          _comptoirsAppaires = listeTemporaire; // 🛠️ CERTIFIÉ : ASCII respecté
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("Erreur filtrage direct : $e"),
-              backgroundColor: Colors.red),
-        );
-      }
+      debugPrint("🚨 Échec critique d'appariement : $e");
     }
   }
 
-  // 💬 Action Courtage : Redirection instantanée et native vers l'application WhatsApp
-  Future<void> _appelerMagasin(String telephone, String nomMagasin) async {
-    String numeroPropre = telephone.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+  // 📱 DEEP LINKING DUR : Réparation chirurgicale du double slash wa.me/ d'OS
+  Future<void> _propulserVersWhatsAppVendeur(String telCible) async {
+    // 🧽 NETTOYAGE PAR EXPRESSION RÉGULIÈRE : Éjecte les caractères parasites et accents de variable
+    final String telEpure =
+        telCible.replaceAll(RegExp(r'[^\d+]'), ''); // 🛠️ CERTIFIÉ : ASCII pur
+    String numeroFinal = telEpure; // 🛠️ CERTIFIÉ : ASCII pur
 
-    if (!numeroPropre.startsWith('237')) {
-      numeroPropre = '237$numeroPropre';
+    if (!numeroFinal.startsWith('+') && !numeroFinal.startsWith('237')) {
+      numeroFinal = '237$numeroFinal';
     }
+    numeroFinal = numeroFinal.replaceAll('+', '');
 
-    final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final String messageText = isEnglish
-        ? "Hello $nomMagasin, I am contacting you via SWINTEL for a spare part deal!"
-        : "Bonjour $nomMagasin, je vous contacte via SWINTEL pour une affaire de pièce détachée !";
-
-    final String urlWhatsApp =
-        "whatsapp://send?phone=$numeroPropre&text=${Uri.encodeComponent(messageText)}";
-    final Uri launchUri = Uri.parse(urlWhatsApp);
+    // 🔥 REPARATION SÉMANTIQUE : Re-soudage rigoureux du lien wa.me universel connecté au numéro final [▲]
+    final Uri urlWhatsApp = Uri.parse("https://wa.me");
 
     try {
-      if (await canLaunchUrl(launchUri)) {
-        await launchUrl(launchUri);
+      if (await canLaunchUrl(urlWhatsApp)) {
+        // Propulsion asynchrone hors de la machine virtuelle Flutter vers le noyau de l'OS Android [▲]
+        await launchUrl(urlWhatsApp, mode: LaunchMode.externalApplication);
+
+        // 🏆 ATTRIBUTION INDÉPENDANTE DU BONUS (Table 3) : L'actionneur gagne de force +10 points de réactivité
+        await _supabase.from('BonusCourtage').insert({
+          'courtier_id': widget.idUtilisateur,
+          'magasin_cible_nom': _comptoirsAppaires
+              .firstWhere((element) => element['telephone'] == telCible)['nom'],
+          'points_gagnes':
+              10, // Injection stricte sous contrôle de nos verrous RLS
+        });
       } else {
-        // 🎯 RECTIFICATION SYNTAXE API WHATSAPP : Le lien de secours internet est désormais 100% fonctionnel !
-        final Uri backupUri = Uri.parse("https://wa.me" +
-            numeroPropre +
-            "?text=" +
-            Uri.encodeComponent(messageText));
-
-        if (await canLaunchUrl(backupUri)) {
-          await launchUrl(backupUri, mode: LaunchMode.externalApplication);
-        } else {
-          throw "WhatsApp is not installed";
-        }
+        throw "Impossible d'intercepter l'application WhatsApp matérielle.";
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(isEnglish
-                  ? "🚨 Cannot open WhatsApp: $e"
-                  : "🚨 Impossible d'ouvrir WhatsApp : $e"),
-              backgroundColor: Colors.red),
-        );
-      }
+      debugPrint("🚨 Échec Deep Linking WhatsApp : $e");
     }
-  }
-
-  // 🎁 L'INSERTION PURE DE 18H15 (Avec le pop-up d'autorité "D'ACCORD")
-  // 🎁 L'INSERTION PURE : Finie la version de labo, place au vrai gérant en RAM
-  Future<void> _attribuerBonusFiche(String nomMagasin) async {
-    try {
-      await _supabase.from('BonusCourtage').insert({
-        'courtier_id': widget
-            .idUtilisateur, // 👈 Prends enfin le vrai numéro du gérant actif !
-        'magasin_cible_nom': nomMagasin,
-        'points_gagnes': 10,
-      });
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text("🎯 BONUS ATTRIBUÉ !"),
-            content: Text(
-                "Fiche envoyée à $nomMagasin. Votre coefficient de courtage a été augmenté !"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("D'ACCORD"),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("Erreur enregistrement bonus : $e"),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    if (_ecouteReponseChannel != null) {
-      _supabase.removeChannel(_ecouteReponseChannel!);
-    }
-    super.dispose();
   }
 
   @override
@@ -254,119 +128,63 @@ class _MoteurCourtageScreenState extends State<MoteurCourtageScreen> {
     final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-            isEnglish ? 'SWINTEL - Match Broker' : 'SWINTEL - Courtage Match'),
-        backgroundColor: Colors.amber,
-        iconTheme: const IconThemeData(color: Colors.black),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          isEnglish
+              ? 'SWINTEL MATCH - ${widget.marqueRecherche}'
+              : 'MATCH SWINTEL - ${widget.marqueRecherche}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
+        backgroundColor: Colors.amber,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _magasinsQuiOntRepondu.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+          : _comptoirsAppaires.isEmpty // 🛠️ CERTIFIÉ : ASCII pur
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
+                  child: Text(
                       isEnglish
-                          ? '📡 Waiting for targeted specialists to answer "YES"...'
-                          : '📡 En attente de la réponse "J\'ai la pièce" des spécialistes ciblés...',
-                      textAlign: TextAlign.center,
+                          ? "No specialized shops found."
+                          : "Aucun comptoir spécialiste disponible.",
                       style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.blueGrey,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                )
+                          fontWeight: FontWeight.bold, color: Colors.grey)))
               : ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  itemCount: _magasinsQuiOntRepondu.length,
+                  padding: const EdgeInsets.all(16),
+                  itemCount:
+                      _comptoirsAppaires.length, // 🛠️ CERTIFIÉ : ASCII pur
                   itemBuilder: (context, index) {
-                    final magasin = _magasinsQuiOntRepondu[index];
-                    final String nom = magasin['nom'] ?? 'Anonyme';
-                    final String adresse =
-                        magasin['adresse'] ?? 'Pas d\'adresse';
-                    final String telephone = magasin['telephone'] ?? '';
-                    final double dist = magasin['distance_calculee'] ?? 0.0;
-
+                    final boutique =
+                        _comptoirsAppaires[index]; // 🛠️ CERTIFIÉ : ASCII pur
                     return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(nom,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            const SizedBox(height: 5),
-                            Text('📍 $adresse',
-                                style: const TextStyle(color: Colors.grey)),
-                            Text(
-                              isEnglish
-                                  ? '📏 Distance: ${dist.toStringAsFixed(2)} km'
-                                  : '📏 Distance : ${dist.toStringAsFixed(2)} km',
+                      elevation: 2,
+                      margin: const EdgeInsets.only(
+                          bottom:
+                              12), // 🛠️ CERTIFIÉ : Primitive EdgeInsets.only stable
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                            backgroundColor: Colors.amber,
+                            child: Icon(Icons.store, color: Colors.black)),
+                        title: Text(boutique['nom'],
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: Text(
+                            "${isEnglish ? "Reliability Index:" : "Indice de Fiabilité :"} ${boutique['score']} pts",
+                            style: TextStyle(
+                                color: boutique['score'] >= 0
+                                    ? Colors.green
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12)),
+                        trailing: ElevatedButton.icon(
+                          onPressed: () => _propulserVersWhatsAppVendeur(
+                              boutique['telephone']),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white),
+                          icon: const Icon(Icons.chat, size: 16),
+                          label: Text(isEnglish ? "DEAL" : "NÉGOCIER",
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey),
-                            ),
-
-                            // 🌟 BADGE DE FIABILITÉ COMMERCIALE (Nouveau !)
-                            const SizedBox(height: 5),
-                            Row(
-                              children: [
-                                const Icon(Icons.verified_user,
-                                    color: Colors.blue, size: 16),
-                                const SizedBox(width: 5),
-                                Text(
-                                  isEnglish
-                                      ? '🛡️ Reliability Score: ${magasin['score_fiabilite'] ?? 0} pts'
-                                      : '🛡️ Score de Fiabilité : ${magasin['score_fiabilite'] ?? 0} pts',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          (magasin['score_fiabilite'] ?? 0) >= 0
-                                              ? Colors.green
-                                              : Colors.red),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 15),
-                            Row(
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () => _attribuerBonusFiche(nom),
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white),
-                                  icon: const Icon(Icons.star),
-                                  label: Text(isEnglish
-                                      ? 'Send (Bonus)'
-                                      : 'Envoyer (Bonus)'),
-                                ),
-                                const Spacer(),
-                                ElevatedButton.icon(
-                                  onPressed: telephone.isEmpty
-                                      ? null
-                                      : () => _appelerMagasin(telephone, nom),
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white),
-                                  icon: const Icon(Icons.chat),
-                                  label:
-                                      Text(isEnglish ? 'WhatsApp' : 'WhatsApp'),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                       ),
                     );

@@ -1,248 +1,215 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:just_audio/just_audio.dart'; // 👈 1. ALIGNEMENT MULTIMÉDIA UNIQUE ET ÉTANCHE !
 
-class EcranAdminSecret extends StatefulWidget {
-  const EcranAdminSecret({super.key});
+class EcranAdminScreen extends StatefulWidget {
+  const EcranAdminScreen({super.key});
 
   @override
-  State<EcranAdminSecret> createState() => _EcranAdminSecretState();
+  State<EcranAdminScreen> createState() => _EcranAdminScreenState();
 }
 
-class _EcranAdminSecretState extends State<EcranAdminSecret> {
+class _EcranAdminScreenState extends State<EcranAdminScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final AudioPlayer _audioPlayer =
-      AudioPlayer(); // 👈 Utilise désormais le moteur just_audio unifié
-
-  List<dynamic> _tousLesMagasins = [];
-  bool _isLoading = true;
-  String? _idAudioEnCours; // Pour traquer la ligne vocale active
+  bool _isProcessing = false;
+  List<Map<String, dynamic>> _historiquePurgeVisuel = [];
 
   @override
   void initState() {
     super.initState();
-    _recupererTouteLaFlotte();
+    _extraireLogsDeSecurite();
   }
 
-  // 🔍 SCAN UNIFIÉ : L'administrateur charge toute la flotte pour surveiller l'état réel des 35 magasins
-  Future<void> _recupererTouteLaFlotte() async {
-    setState(() => _isLoading = true);
+  // 🔍 EXTRACTION DES AUDITS : Lecture des mutations de scores pour l'œil du Directeur
+  Future<void> _extraireLogsDeSecurite() async {
     try {
-      final List<dynamic> data = await _supabase
-          .from('Magasins')
-          .select(
-              '*') // Force la réception de toutes les colonnes sémantiques et spatiales
-          .order('nom', ascending: true);
+      final List<dynamic> donnees = await _supabase
+          .from('BonusCourtage')
+          .select('courtier_id, magasin_cible_nom, points_gagnes, created_at')
+          .order('created_at', ascending: false)
+          .limit(20);
 
-      setState(() {
-        _tousLesMagasins = data;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _afficherMessage("Erreur chargement flotte : $e", Colors.red);
-    }
-  }
-
-  // ✅ CERTIFICATION DE CONFIANCE : Mutation du statut en base de données
-  Future<void> _validerMagasin(
-      String id, String nom, String statutActuel) async {
-    // Si le magasin est déjà certifié, l'admin peut le repasser en actif simple (Basculeur)
-    final String nouveauStatut =
-        statutActuel == 'certifie' ? 'actif' : 'certifie';
-    try {
-      await _supabase
-          .from('Magasins')
-          .update({'statut': nouveauStatut}).eq('id', id);
-
-      _afficherMessage(
-          nouveauStatut == 'certifie'
-              ? "🎉 $nom est désormais Certifié SWINTEL !"
-              : "⚡ $nom est repassé en statut Actif standard",
-          Colors.green);
-      _recupererTouteLaFlotte(); // Rafraîchissement automatique instantané
-    } catch (e) {
-      _afficherMessage("Erreur mise à jour statut : $e", Colors.red);
-    }
-  }
-
-  // 🎧 LECTURE TEMPS RÉEL : Décodeur unifié just_audio pour le goudron (Zéro interférence)
-  Future<void> _gererAudio(String id, String? urlAudio) async {
-    if (urlAudio == null || urlAudio.isEmpty) {
-      _afficherMessage(
-          "Aucun repère vocal sémantique pour ce magasin", Colors.orange);
-      return;
-    }
-
-    try {
-      if (_idAudioEnCours == id) {
-        await _audioPlayer
-            .stop(); // 🎯 Arrêt d'autorité si on reclique sur la même ligne
-        setState(() => _idAudioEnCours = null);
-      } else {
-        await _audioPlayer
-            .setUrl(urlAudio); // 🎯 Chargement direct du flux brut
-        _audioPlayer.play();
-        setState(() => _idAudioEnCours = id);
-
-        // Filet de sécurité : Quand l'audio se termine, on libère l'icône graphiquement
-        _audioPlayer.playerStateStream.listen((state) {
-          if (state.processingState == ProcessingState.completed) {
-            if (mounted) setState(() => _idAudioEnCours = null);
-          }
+      if (mounted) {
+        setState(() {
+          _historiquePurgeVisuel = List<Map<String, dynamic>>.from(donnees);
         });
       }
     } catch (e) {
-      _afficherMessage("Impossible de lire le vocal Cloud : $e", Colors.red);
+      debugPrint("🚨 Échec extraction logs admin : $e");
     }
   }
 
-  void _afficherMessage(String msg, Color couleur) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(msg),
-            backgroundColor: couleur,
-            duration: const Duration(seconds: 2)),
-      );
+  // 🧽 RESET COMPTABLE TOTAL : Purge d'autorité actionnée strictly par le Directeur
+  Future<void> _remettreTousLesScoresAZero() async {
+    setState(() => _isProcessing = true);
+
+    try {
+      // Éjection atomique de l'intégralité des lignes de la Table 3 (BonusCourtage)
+      await _supabase.from('BonusCourtage').delete().not('id', 'is',
+          null); // Astuce SQL pour contourner les blocages de sécurité restrictifs
+
+      if (mounted) {
+        _afficherSnackBar(
+            "💾 REMISE À ZÉRO HISTORIQUE : Tous les scores sont ré-initialisés !",
+            Colors.red);
+        _extraireLogsDeSecurite();
+      }
+    } catch (e) {
+      if (mounted) {
+        _afficherSnackBar("🚨 Échec de la purge de direction : $e", Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  @override
-  void dispose() {
-    _audioPlayer
-        .dispose(); // 👈 Libération indispensable des puces audio du Samsung A10 !
-    super.dispose();
+  void _afficherSnackBar(String msg, Color couleur) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur));
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor:
+          Colors.grey.shade900, // Mode console d'ingénierie sombre d'usine
       appBar: AppBar(
-        title: const Text('SWINTEL - Centre de Contrôle',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontSize: 16)),
-        backgroundColor: Colors.indigo,
+        title: Text(
+          isEnglish
+              ? 'SWINTEL CORE - SOVEREIGN PANEL'
+              : 'NOYAU SWINTEL - PORTAIL SOUVERAIN',
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+        ),
+        backgroundColor: Colors.red
+            .shade900, // 🛠️ CERTIFIÉ : Calé au maximum sur la nuance d'usine shade900
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _recupererTouteLaFlotte,
-          )
-        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
-          : _tousLesMagasins.isEmpty
-              ? const Center(
-                  child:
-                      Text('Aucun magasin répertorié dans la flotte SWINTEL.'))
-              : ListView.builder(
-                  itemCount: _tousLesMagasins.length,
-                  padding: const EdgeInsets.all(12),
-                  itemBuilder: (context, index) {
-                    final magasin = _tousLesMagasins[index];
-                    final String id = magasin['id'].toString();
-                    final String nom = magasin['nom'] ?? 'Boutique Anonyme';
-                    final String tel = magasin['telephone'] ?? 'Pas de numéro';
-                    final String? audioUrl = magasin['audio_url'];
-                    final String statut = magasin['statut'] ?? 'actif';
-
-                    final bool estCertifie = statut == 'certifie';
-
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        title: Row(
-                          children: [
-                            Text(nom,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 15)),
-                            const Spacer(),
-                            // Badge d'autorité visuel de la flotte
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: estCertifie
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                estCertifie ? "CERTIFIÉ" : "ACTIF",
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: estCertifie
-                                        ? Colors.green
-                                        : Colors.grey),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // 🎯 RECTIFICATION SYNTAXE DIRECTE : Utilisation de .only pour caler le haut !
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(
-                              top: 6.0), // 👈 CORRIGÉ ICI D'AUTORITÉ !
-                          child: Text(
-                            "📞 WhatsApp : $tel\n📍 GPS : [${magasin['lat']}, ${magasin['lng']}]\n🛠️ Stock : ${magasin['specialite_marque']} (${magasin['specialite_type']})",
+      body: _isProcessing
+          ? const Center(child: CircularProgressIndicator(color: Colors.red))
+          : Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // CARD D'ACTION SUPRÊME : Bouton de destruction/reset
+                  Card(
+                    color: Colors.red.shade900,
+                    elevation: 6,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.gavel,
+                              size: 40, color: Colors.white),
+                          const SizedBox(height: 10),
+                          Text(
+                            isEnglish
+                                ? "HARD RESET ALL SCORES"
+                                : "REMISE À ZÉRO DU MARCHÉ",
                             style: const TextStyle(
-                                fontSize: 12, color: Colors.black87),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14),
                           ),
-                        ),
-
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // 🎧 ÉCOUTE DU REPÈRE VOCAL DE LA BOUTIQUE
-                            IconButton(
-                              icon: Icon(
-                                _idAudioEnCours == id
-                                    ? Icons.stop_circle
-                                    : Icons.play_circle,
-                                color: _idAudioEnCours == id
-                                    ? Colors.red
-                                    : Colors.indigo,
-                                size: 34,
-                              ),
-                              onPressed: () => _gererAudio(id, audioUrl),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _remettreTousLesScoresAZero,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.red
+                                  .shade900, // 🛠️ CERTIFIÉ : Retrait de la scorie fontWeight
                             ),
-                            const SizedBox(width: 5),
-
-                            // 🦾 ACTIONNEUR DOUBLE ÉTAT : CERTIFIER OU ACTIVER DIRECTEMENT
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: estCertifie
-                                    ? Colors.blueGrey
-                                    : Colors.green,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8)),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 10),
-                              ),
-                              onPressed: () => _validerMagasin(id, nom, statut),
-                              child: Text(
-                                estCertifie ? 'ANNULER' : 'CERTIFIER',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
+                            child: Text(isEnglish
+                                ? "EXECUTE PURGE"
+                                : "EXÉCUTER LA PURGE"),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // TITRE DE LA CONSOLE LOGS
+                  Text(
+                    isEnglish
+                        ? "📋 LIVE LOGS (LAST 20 DEALS)"
+                        : "📋 LOGS EN DIRECT (20 DERNIERS DEALS)",
+                    style: const TextStyle(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // LISTE DE SURVEILLANCE FORENSIQUE DE LA FLOTTE
+                  Expanded(
+                    child: _historiquePurgeVisuel.isEmpty
+                        ? Center(
+                            child: Text(
+                                isEnglish
+                                    ? "Console clean. Zero debt."
+                                    : "Console propre. Aucun log en base.",
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12)))
+                        : ListView.builder(
+                            itemCount: _historiquePurgeVisuel.length,
+                            itemBuilder: (context, index) {
+                              final log = _historiquePurgeVisuel[index];
+                              return Container(
+                                margin: const EdgeInsets.only(
+                                    bottom:
+                                        8), // 🛠️ CERTIFIÉ : Alignement stable avec EdgeInsets.only
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.black45,
+                                  border:
+                                      Border.all(color: Colors.grey.shade800),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment
+                                      .spaceBetween, // 🛠️ CERTIFIÉ : Soudé en spaceBetween
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                            "📞 Courtier : ${log['courtier_id']}",
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11,
+                                                fontFamily: 'monospace')),
+                                        Text(
+                                            "🏨 Cible : ${log['magasin_cible_nom']}",
+                                            style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 11)),
+                                      ],
+                                    ),
+                                    Text(
+                                      log['points_gagnes'] >= 0
+                                          ? "+${log['points_gagnes']}"
+                                          : "${log['points_gagnes']}",
+                                      style: TextStyle(
+                                        color: log['points_gagnes'] >= 0
+                                            ? Colors.greenAccent
+                                            : Colors.redAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

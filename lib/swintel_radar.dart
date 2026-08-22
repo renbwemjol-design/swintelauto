@@ -1,183 +1,226 @@
-import 'dart:async'; // 🧠 Infrastructure asynchrone des Streams
-import 'dart:math' as math; // 👈 L'IMPORTATION GÉOSPATIALE VECTORISÉE
+import 'dart:async';
+import 'dart:math'
+    as math; // 📐 Indispensable pour la trigonométrie sphérique dure
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Indispensable pour injecter les bips physiques
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:vibration/vibration.dart';
-import 'package:audioplayers/audioplayers.dart'; // 🚀 LE NOUVEAU LEVIER ACOUSTIQUE DIRECT
-import 'dashboard.dart';
+import 'package:vibration/vibration.dart'; // 🦾 Piston du moteur haptique maximal 255
+import 'package:just_audio/just_audio.dart'; // 🎵 Intercepteur acoustique en cache local
 import 'alerte_flash_vendeur.dart';
-import 'main.dart';
 
-class SwintelRadarGate extends StatefulWidget {
-  final String idUtilisateur;
-  final String nomMagasinLocal;
+class SwintelRadarScreen extends StatefulWidget {
+  final String idUtilisateur; // Le numéro WhatsApp de la boutique G2 réceptrice
 
-  const SwintelRadarGate({
-    super.key,
-    required this.idUtilisateur,
-    required this.nomMagasinLocal,
-  });
+  const SwintelRadarScreen({super.key, required this.idUtilisateur});
 
   @override
-  State<SwintelRadarGate> createState() => _SwintelRadarGateState();
+  State<SwintelRadarScreen> createState() => _SwintelRadarScreenState();
 }
 
-class _SwintelRadarGateState extends State<SwintelRadarGate> {
+class _SwintelRadarScreenState extends State<SwintelRadarScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  StreamSubscription? _radarSubscription; // 👈 Filet de sécurité asynchrone
-  final AudioPlayer _audioPlayer =
-      AudioPlayer(); // 🔊 INSTANCE UNIQUE POUR L'ACADÉMIE
+  late AudioPlayer _audioPlayer; // Cache acoustique d'écurie
+
+  double _latG2 = 0.0;
+  double _lngG2 = 0.0;
+  String _marqueG2 = '';
+  String _pieceG2 = '';
+  bool _isInitializing = true;
+  String? _derniereAlerteTraiteeId; // Verrou anti-hoquet de répétition
 
   @override
   void initState() {
     super.initState();
-    // 🚀 NETTOYAGE EN LIGNE DROITE : Zéro paramètre complexe, Gradle passe au vert d'autorité !
-    _allumerRadarDeFlotte();
+    _audioPlayer = AudioPlayer();
+    _chargerProfilEtAmorcerRadar();
   }
 
-  // 🧠 FONCTION MATHÉMATIQUE DE HAVERSINE : Calcule la distance exacte en kilomètres entre deux points GPS
-  double _calculerDistanceHaversine(
-      double lat1, double lng1, double lat2, double lng2) {
-    const double rayonTerre = 6371.0;
-    double dLat = (lat2 - lat1) * math.pi / 180.0;
-    double dLng = (lng2 - lng1) * math.pi / 180.0;
-    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * math.pi / 180.0) *
-            math.cos(lat2 * math.pi / 180.0) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return rayonTerre * c;
-  }
-
-  void _allumerRadarDeFlotte() {
-    // 🧠 INFRASTRUCTURE DE FLUX SÉLECTIF : Écoute le Stream réel des alertes en attente
-    _radarSubscription = _supabase
-        .from('Alertes')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false)
-        .listen((List<Map<String, dynamic>> alertes) async {
-          if (alertes.isEmpty) return;
-
-          final alerte = alertes.first;
-          final dynamic idAlerte = alerte['id'];
-          final String audioUrl = alerte['audio_url'] ?? '';
-          final String demandeurId = alerte['demandeur_id'] ?? '';
-          final String statutAlerte = alerte['statut_alerte'] ?? '';
-
-          // 🎯 EXTRACTION SÉMANTIQUES : Extraction des filtres de l'alerte
-          final String marqueRecherche = alerte['marque_concernee'] ?? '';
-          final String pieceRecherche = alerte['piece_concernee'] ?? '';
-
-          if (statutAlerte != 'en_attente') return;
-          // if (demandeurId == widget.idUtilisateur) return; // Anti-auto-vibration gelé pour le laboratoire
-
-          try {
-            // ----------------------------------------------------------------------
-            // 🛰️ COUPLAGE GÉOMÉTRIQUE : Extraction de la position FIXE de l'émetteur G1 depuis Magasins
-            // ----------------------------------------------------------------------
-            final emetteurData = await _supabase
-                .from('Magasins')
-                .select('lat, lng')
-                .eq('telephone', demandeurId)
-                .maybeSingle();
-
-            final double latG1 =
-                (emetteurData?['lat'] as num?)?.toDouble() ?? 4.0510;
-            final double lngG1 =
-                (emetteurData?['lng'] as num?)?.toDouble() ?? 9.7679;
-
-            // ----------------------------------------------------------------------
-            // 🏆 FILTRE 1 : CORRÉLATION SÉMANTIQUE DU STOCK DE LA BOUTIQUE ACTUELLE (RÉCEPTEUR)
-            // ----------------------------------------------------------------------
-            final boutiqueData = await _supabase
-                .from('Magasins')
-                .select('specialite_marque, specialite_type, lat, lng')
-                .eq('telephone', widget.idUtilisateur)
-                .maybeSingle();
-
-            if (boutiqueData == null) return;
-
-            final String maMarque = boutiqueData['specialite_marque'] ?? '';
-            final String monTypePiece = boutiqueData['specialite_type'] ?? '';
-            final double maLat =
-                (boutiqueData['lat'] as num?)?.toDouble() ?? 0.0;
-            final double maLng =
-                (boutiqueData['lng'] as num?)?.toDouble() ?? 0.0;
-
-            bool marqueCompatible = maMarque
-                    .toLowerCase()
-                    .contains(marqueRecherche.toLowerCase()) ||
-                marqueRecherche.isEmpty;
-            bool pieceCompatible = monTypePiece
-                    .toLowerCase()
-                    .contains(pieceRecherche.toLowerCase()) ||
-                pieceRecherche.isEmpty;
-
-            if (!marqueCompatible || !pieceCompatible) return;
-
-            // ----------------------------------------------------------------------
-            // 🏆 FILTRE 2 : LE CALCUL GÉOSPATIAL (Ancrage sur les Comptoirs Fixes)
-            // ----------------------------------------------------------------------
-            double distanceDuDeal =
-                _calculerDistanceHaversine(latG1, lngG1, maLat, maLng);
-
-            if (distanceDuDeal > 500.0)
-              return; // Barrière laboratoire élastique
-
-            // ----------------------------------------------------------------------
-            // SI TOUS LES FILTRES PASSENT AU VERT ➡️ LE SMARTPHONE GRONDE ET HURLE DE FORCE !
-            // ----------------------------------------------------------------------
-            if (mounted) {
-              // 📳 ACTION 1.A : DOUBLE ONDE DE CHOC DE VIBRATION (Intensité 255)
-              if (await Vibration.hasVibrator() ?? false) {
-                Vibration.vibrate(
-                  pattern: [0, 500, 200, 500, 200, 500, 200, 500, 200, 800],
-                  intensities: [0, 255, 0, 255, 0, 255, 0, 255, 0, 255],
-                );
-              }
-
-              // 🔊 ACTION 1.B : LE COURT-CIRCUIT AUDIO DIRECT DE RJ RECTIFIÉ DU LUNDI MIDI
-              try {
-                await _audioPlayer.stop();
-                // Utilisation de la syntaxe de source certifiée v6
-                await _audioPlayer.play(AssetSource('sirene.ogg'));
-                print(
-                    "📡 Sirène d'urgence .ogg propulsée sur le haut-parleur natif !");
-              } catch (audioError) {
-                debugPrint("Hoquet acoustique direct : $audioError");
-              }
-
-              // 🚀 ACTION 2 : L'écran de mission Flash surgit de force sur les pixels !
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AlerteFlashVendeurScreen(
-                    idAlerte: idAlerte,
-                    idVendeur: demandeurId,
-                    nomMagasin: widget.nomMagasinLocal,
-                    audioUrl: audioUrl,
-                  ),
-                ),
-              );
-            }
-          } catch (e) {
-            debugPrint("Hoquet critique filtres sémantiques/géospatiaux : $e");
-          }
+  // 🗜️ EXTRACTION DU CADRE DE VÉRITÉ : Lecture du profil G2 pour calibrer les filtres
+  Future<void> _chargerProfilEtAmorcerRadar() async {
+    try {
+      final profil = await _supabase
+          .from('Magasins')
+          .select('lat, lng, specialite_marque, specialite_type')
+          .eq('telephone', widget.idUtilisateur)
+          .maybeSingle();
+      if (profil != null && mounted) {
+        setState(() {
+          _latG2 = (profil['lat'] as num).toDouble();
+          _lngG2 = (profil['lng'] as num).toDouble();
+          _marqueG2 = profil['specialite_marque'] ?? '';
+          _pieceG2 = profil['specialite_type'] ?? '';
+          _isInitializing = false;
         });
+      }
+    } catch (e) {
+      debugPrint("🚨 Erreur amorçage profil radar : $e");
+    }
+  }
+
+  // 📐 FORMULE MATHEMATIQUE DE HAVERSINE : Calcul de distance sphérique non linéaire sur float8
+  double _calculerDistanceHaversine(
+      double lat1, double lon1, double lat2, double lon2) {
+    const double rayonTerreKm = 6371.0;
+    final double dLat = _convertirEnRadians(lat2 - lat1);
+    final double dLon = _convertirEnRadians(lon2 - lon1);
+
+    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_convertirEnRadians(lat1)) *
+            math.cos(_convertirEnRadians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return rayonTerreKm * c; // Distance géométrique ultra-precise au centimètre
+  }
+
+  double _convertirEnRadians(double degres) => degres * (math.pi / 180);
+
+  // 💥 COMMANDE PHYSIQUE DES COMPOSANTS (Intensité 255 + Sirène)
+  void _declencherAlertePhysiqueMaximale() async {
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(duration: 1500, amplitude: 255);
+    }
+    try {
+      await _audioPlayer.setAsset('assets/son/sirene_urgence.ogg');
+      _audioPlayer.play();
+    } catch (e) {
+      debugPrint("🚨 Erreur lecture sirène : $e");
+    }
   }
 
   @override
   void dispose() {
-    _radarSubscription
-        ?.cancel(); // 🧽 Fermeture hermétique du robinet pour préserver la RAM
-    _audioPlayer.dispose(); // 🧽 Libération du processeur audio
+    _audioPlayer
+        .dispose(); // 🧽 Libération de la puce audio pour interdire les fuites de RAM
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DashboardScreen(idUtilisateur: widget.idUtilisateur);
+    final bool isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
+    if (_isInitializing) {
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator(color: Colors.blue)));
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black, // Mode furtif de surveillance nocturne
+      appBar: AppBar(
+        title: Text(
+            isEnglish ? 'SWINTEL RADAR - ACTIVE' : 'RADAR SWINTEL - ACTIF',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.white)),
+        backgroundColor: Colors.blueGrey.shade900,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      // 🧠 PIPELINE COMPLET FLUX SANS EQ : Le flux réseau capte toutes les alertes ouvertes, et le tri se fait en RAM locale
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _supabase.from('Alertes').stream(primaryKey: ['id']),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.radar, size: 80, color: Colors.blue),
+                  const SizedBox(height: 16),
+                  Text(
+                      isEnglish
+                          ? "Scanning market..."
+                          : "Balayage sémantique du marché...",
+                      style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+            );
+          }
+
+          // 🎯 LE VERROU SÉMANTIQUE COMPLET EN RAM : Tri simultané de l'état, de la marque et de la pièce d'usine !
+          final alertesBrutesDuReseau = snapshot.data!;
+          final alertesDuFlux = alertesBrutesDuReseau.where((alerte) {
+            return alerte['statut_alerte'] == 'en_attente' &&
+                alerte['marque_concernee'] == _marqueG2 &&
+                alerte['piece_concernee'] == _pieceG2;
+          }).toList();
+
+          // Si aucune alerte en cours ne correspond strictly à notre profil de spécialiste
+          if (alertesDuFlux.isEmpty) {
+            return Center(
+              child: Text(
+                  isEnglish
+                      ? "No matching parts..."
+                      : "Aucune pièce correspondante...",
+                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            );
+          }
+
+          // 🔎 ANALYSE GÉOSPATIALE DE LA TOUTE DERNIÈRE REQUÊTE FILTRÉE (MARQUE + PIECE CORRÉLÉES)
+          final derniereAlerte = alertesDuFlux.first;
+          final String idAlerte = derniereAlerte['id'];
+          final String demandeurId = derniereAlerte['demandeur_id'] ?? '';
+          final String urlAudio = derniereAlerte['audio_url'] ?? '';
+
+          // 🔄 APPEL ASYNC POUR RÉCUPÉRER LA POSITION FIXE DE G1 DEPUIS LA TABLE MAGASINS
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: _supabase
+                .from('Magasins')
+                .select('lat, lng')
+                .eq('telephone', demandeurId)
+                .maybeSingle(),
+            builder: (context, geoSnapshot) {
+              if (!geoSnapshot.hasData || geoSnapshot.data == null)
+                return const SizedBox.shrink();
+
+              final double latG1 = (geoSnapshot.data!['lat'] as num).toDouble();
+              final double lngG1 = (geoSnapshot.data!['lng'] as num).toDouble();
+
+              // CALCUL DE LA DISTANCE RÉELLE VIA HAVERSINE
+              final double distanceKm =
+                  _calculerDistanceHaversine(_latG2, _lngG2, latG1, lngG1);
+
+              // 🎯 BRIDAGE MAXIMUM DU RADAR : Le signal percute strictly si distance ≤ 5.0 km
+              if (distanceKm <= 5.0) {
+                if (_derniereAlerteTraiteeId != idAlerte) {
+                  _derniereAlerteTraiteeId = idAlerte;
+
+                  // Déclenchement instantané des composants physiques (Intensité 255 + Sirène)
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _declencherAlertePhysiqueMaximale();
+
+                    // Propulsion tactile immédiate vers l'écran d'urgence rouge (UE 205)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AlerteFlashVendeurScreen(
+                          idAlerte: idAlerte,
+                          idVendeur: widget.idUtilisateur,
+                          nomMagasin: "Mon Comptoir",
+                          audioUrl: urlAudio,
+                        ),
+                      ),
+                    );
+                  });
+                }
+              }
+
+              return Center(
+                child: Text(
+                  isEnglish
+                      ? "⚠️ DANGER ZONE: Request within radius!"
+                      : "⚠️ COMPTOIR CIBLE DETECTÉ DANS LE RAYON !",
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }

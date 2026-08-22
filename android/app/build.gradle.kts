@@ -1,16 +1,20 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.reseau_auto"
-    compileSdk = 36
+    // 🏆 NAMESPACE DE PRODUCTION DIRECTE : Totalement découplé de la maquette de laboratoire
+    namespace = "com.swintel.production"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // 🎯 MICRO-SOUDURE 1 : Activation du traducteur de bibliothèque multimédia Java 8+
+        // 🛠️ VERROU DE SÉCURITÉ : Activation du mécanisme de desugaring exigé par flutter_local_notifications [▲]
         isCoreLibraryDesugaringEnabled = true
+        
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -20,18 +24,22 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.reseau_auto"
+        // 🏆 APPLICATION ID DE CRÊTE : Protège la V1-Beta contre tout risque d'écrasement matériel [▲]
+        applicationId = "com.swintel.production"
+        
+        // Alignement automatique sur les variables de configuration de l'infrastructure Flutter
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
-        // 🎯 MICRO-SOUDURE 2 : Activation du MultiDex pour les architectures lourdes 2026
+        // ⚙️ BRIDAGE MATÉRIEL ANDROID GO : Permet le fractionnement multidex pour les vieux processeurs [▲]
         multiDexEnabled = true
     }
 
     buildTypes {
         release {
+            // Configuration de signature debug temporaire pour valider le 'flutter run --release' au goudron
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -41,9 +49,8 @@ flutter {
     source = "../.."
 }
 
-// 🎯 MICRO-SOUDURE 3 : Injection de la bibliothèque de traduction physique au cœur de Gradle
-// 🎯 MISE À NIVEAU VERSION 2026 : Le traducteur passe en version 2.1.4 d'autorité !
+// 💥 RACCORDEMENT DES BINAIRES DE L'OS ANDROID
 dependencies {
+    // 🛠️ INJECTION D'USINE : Version 2.1.4 imposée pour la stabilité du SDK 36 sous la pluie de Nice [▲]
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
-
