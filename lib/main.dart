@@ -10,9 +10,10 @@ void main() async {
 
   // 📡 CORRECTION CLOUD DIRECTE : Initialisation étanche sans scorie d'URL
   await Supabase.initialize(
-    url: 'https://supabase.co', // Adresse sécurisée RJ sanctuarisée
+    url:
+        'https://knvujljgzhnwqcoukuni.supabase.co', // Adresse sécurisée RJ sanctuarisée
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY4NDA4OTIsImV4cCI6MjAzMjQxNjg5Mn0.123456_fake_key_for_TP', // Clé anonyme d'acier
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudnVqbGpnemhud3Fjb3VrdW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjkzNjksImV4cCI6MjA5MzIwNTM2OX0.1zRseAK5IbjiYdQYju7a-Vn4yGKxeTkzKsVeV7KrYl4', // Clé anonyme d'acier
   );
 
   // 🗄️ PERSISTANCE FORENSIQUE : Vérification de la présence d'une puce gérant en mémoire flash
