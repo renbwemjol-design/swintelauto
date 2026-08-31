@@ -9,23 +9,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  supabase_flutter: ^2.0.2
+  supabase_flutter: ^2.12.4 # 🟢 Mise à niveau synchronisée avec notre whisper_service
   geolocator: ^14.0.2
   image_picker: ^1.2.2
-  audioplayers: ^6.6.0
-  record: ^6.2.0
+  record: ^6.2.0            # 🎙️ Capture micro préservée pour l'atelier
   path_provider: ^2.1.5
-  just_audio: ^0.10.5
+  just_audio: ^0.10.5       # 🎵 Conservé en solo (Purger audioplayers résout le crash A10)
   vibration: ^3.1.8
   shared_preferences: ^2.5.5
+  http: ^1.2.0              # 👈 LE CONNECTEUR CLOUD VERS OPENAI / SUPABASE INJECTÉ ICI
   flutter_localizations:
     sdk: flutter
   flutter_local_notifications: ^20.1.0
 
+dev_dependencies:
+  flutter_lints: ^3.0.0
+
 flutter:
   uses-material-design: true
   assets:
-    - assets/sirene.ogg # 👈 LE FIL TRE DE DOUANE MULTIMÉDIA EMBARQUÉ
-
-dev_dependencies:
-  flutter_lints: ^6.0.0
+    - assets/sirene.ogg     # 👈 LE FILTRE DE DOUANE MULTIMÉDIA EMBARQUÉ
