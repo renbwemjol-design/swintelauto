@@ -27,7 +27,7 @@ android {
         // 🏆 APPLICATION ID DE CRÊTE : Protège la V1-Beta contre tout risque d'écrasement matériel [▲]
         applicationId = "com.swintel.production"
         
-        // Alignement automatique sur les variables de configuration de l'infrastructure Flutter
+        // ⚔️ BLINDAGE NATIF IMPOSÉ : Fixé à 23 (Android 6.0) pour stabiliser le micro et Supabase sur le terrain [▲]
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
